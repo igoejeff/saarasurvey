@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Saara — Response Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* ── PASSWORD GATE ───────────────────────────── */
+    #gate-overlay {
+      position: fixed; inset: 0; z-index: 99999;
+      background: #000;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Inter', -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    #gate-overlay.unlocked {
+      pointer-events: none;
+      animation: gate-fade-out .55s cubic-bezier(0.4,0,0.2,1) forwards;
+    }
+    @keyframes gate-fade-out {
+      0%   { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1.03); }
+    }
+    .gate-bg-orb {
+      position: absolute; border-radius: 50%; filter: blur(120px); pointer-events: none;
+    }
+    .gate-orb1 { width:700px;height:700px;background:radial-gradient(circle,#1a3a8f,transparent 65%);top:-200px;left:-150px;opacity:.18; }
+    .gate-orb2 { width:500px;height:500px;background:radial-gradient(circle,#4c2b8f,transparent 65%);bottom:-100px;right:-80px;opacity:.14; }
+
+    .gate-card {
+      position: relative; z-index: 2;
+      width: 100%; max-width: 400px; margin: 20px;
+      background: rgba(12,12,16,0.95);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 24px;
+      padding: 44px 40px 40px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 32px 80px rgba(0,0,0,0.7);
+      text-align: center;
+    }
+    .gate-gem {
+      width: 56px; height: 56px; border-radius: 16px;
+      background: linear-gradient(145deg,#4f8ef7,#7c6af7);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 800; color: #fff;
+      margin: 0 auto 20px;
+      box-shadow: 0 0 32px rgba(124,106,247,.45);
+    }
+    .gate-title {
+      font-size: 22px; font-weight: 800; letter-spacing: -.5px;
+      color: #f2f2f7; margin-bottom: 6px;
+    }
+    .gate-sub {
+      font-size: 13px; color: #5c5c6b; margin-bottom: 32px; line-height: 1.5;
+    }
+    .gate-label {
+      display: block; text-align: left;
+      font-size: 11px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase;
+      color: #5c5c6b; margin-bottom: 8px;
+    }
+    .gate-input-wrap { position: relative; margin-bottom: 16px; }
+    .gate-input {
+      width: 100%; padding: 14px 46px 14px 16px;
+      background: #111116; border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 12px; font-family: inherit; font-size: 15px;
+      color: #f2f2f7; outline: none; letter-spacing: .5px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .gate-input:focus {
+      border-color: rgba(79,142,247,.5);
+      box-shadow: 0 0 0 3px rgba(79,142,247,.12);
+    }
+    .gate-input.shake {
+      animation: gate-shake .4s cubic-bezier(0.36,0.07,0.19,0.97);
+      border-color: rgba(248,113,113,.6) !important;
+      box-shadow: 0 0 0 3px rgba(248,113,113,.12) !important;
+    }
+    @keyframes gate-shake {
+      10%,90%  { transform: translateX(-3px); }
+      20%,80%  { transform: translateX( 4px); }
+      30%,50%,70% { transform: translateX(-5px); }
+      40%,60%  { transform: translateX( 5px); }
+    }
+    .gate-eye {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: #5c5c6b;
+      font-size: 16px; padding: 4px; transition: color .15s;
+    }
+    .gate-eye:hover { color: #9b9ba8; }
+    .gate-error {
+      font-size: 12px; color: #f87171; margin-bottom: 14px;
+      min-height: 16px; text-align: left;
+    }
+    .gate-btn {
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg,#4f8ef7,#7c6af7);
+      border: none; border-radius: 12px; cursor: pointer;
+      font-family: inherit; font-size: 15px; font-weight: 700;
+      color: #fff; letter-spacing: -.1px;
+      box-shadow: 0 4px 20px rgba(79,142,247,.35);
+      transition: all .2s cubic-bezier(0.4,0,0.2,1);
+    }
+    .gate-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(79,142,247,.45); }
+    .gate-btn:active { transform: translateY(0); }
+    .gate-footer {
+      font-size: 11px; color: #3a3a4a; margin-top: 24px; line-height: 1.6;
+    }
+    /* hide page until unlocked */
+    body.gate-locked .sidebar,
+    body.gate-locked .main,
+    body.gate-locked .bg-fixed { visibility: hidden; }
+
+    :root {
+      --bg:          #000;
+      --bg-2:        #0a0a0e;
+      --bg-card:     #0c0c10;
+      --bg-input:    #111116;
+      --bg-row:      #0f0f14;
+      --bg-row-h:    #161620;
+      --border:      rgba(255,255,255,0.07);
+      --border-2:    rgba(255,255,255,0.12);
+      --accent:      #4f8ef7;
+      --accent-2:    #7c6af7;
+      --accent-s:    rgba(79,142,247,0.10);
+      --success:     #34d399;
+      --warning:     #fbbf24;
+      --danger:      #f87171;
+      --gold:        #fbbf24;
+      --text-1:      #f2f2f7;
+      --text-2:      #9b9ba8;
+      --text-3:      #5c5c6b;
+      --r-sm:10px; --r-md:16px; --r-lg:22px;
+      --ease: cubic-bezier(0.4,0,0.2,1);
+      --shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 16px 48px rgba(0,0,0,0.5);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ─────────────────────────────── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 240px;
+      background: var(--bg-2); border-right: 1px solid var(--border);
+      padding: 28px 16px; z-index: 100; overflow-y: auto;
+    }
+    .sb-logo {
+      display: flex; align-items: center; gap: 10px; padding: 0 8px;
+      margin-bottom: 36px; text-decoration: none;
+    }
+    .sb-gem {
+      width: 36px; height: 36px; border-radius: 9px;
+      background: linear-gradient(145deg,#4f8ef7,#7c6af7);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800; color: #fff;
+      box-shadow: 0 0 20px rgba(124,106,247,.4);
+    }
+    .sb-brand { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+    .sb-section { font-size: 10px; font-weight: 600; letter-spacing: 1.8px; text-transform: uppercase; color: var(--text-3); padding: 0 10px; margin-bottom: 8px; margin-top: 24px; }
+    .sb-nav a {
+      display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+      border-radius: var(--r-sm); font-size: 14px; color: var(--text-2);
+      text-decoration: none; transition: all .18s; cursor: pointer;
+    }
+    .sb-nav a:hover { background: var(--bg-input); color: var(--text-1); }
+    .sb-nav a.active { background: var(--accent-s); color: var(--accent); }
+    .sb-icon { font-size: 16px; width: 20px; text-align: center; }
+
+    /* ── NEW-BADGE ───────────────────────────── */
+    .new-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 20px; height: 20px; padding: 0 6px;
+      background: linear-gradient(135deg,#ef4444,#f97316);
+      color: #fff; font-size: 10px; font-weight: 700;
+      border-radius: 100px; margin-left: auto;
+      animation: pulse-badge 2s ease-in-out infinite;
+    }
+    @keyframes pulse-badge {
+      0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+      50%      { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
+    }
+    .new-badge.hidden { display: none; }
+
+    /* ── NEW-ROW PILL ────────────────────────── */
+    .new-row-pill {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 9px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+      background: linear-gradient(135deg,rgba(239,68,68,.18),rgba(249,115,22,.12));
+      color: #f97316; border: 1px solid rgba(249,115,22,.25);
+      border-radius: 100px; padding: 2px 7px; margin-left: 6px; vertical-align: middle;
+    }
+
+    /* ── SINCE-BANNER ────────────────────────── */
+    .since-banner {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 14px 18px;
+      background: linear-gradient(135deg,rgba(239,68,68,.08),rgba(249,115,22,.06));
+      border: 1px solid rgba(249,115,22,.22); border-radius: var(--r-md);
+      margin-bottom: 22px; flex-wrap: wrap;
+    }
+    .since-banner.hidden { display: none; }
+    .since-banner-left { display: flex; align-items: center; gap: 12px; }
+    .since-dot {
+      width: 9px; height: 9px; background: #f97316; border-radius: 50%; flex-shrink: 0;
+      animation: pulse-badge 2s ease-in-out infinite;
+    }
+    .since-text { font-size: 14px; font-weight: 600; color: var(--text-1); }
+    .since-sub  { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .btn-mark-seen {
+      display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+      background: rgba(249,115,22,.1); border: 1px solid rgba(249,115,22,.25);
+      border-radius: var(--r-sm); padding: 8px 16px;
+      font-family: inherit; font-size: 12px; font-weight: 600; color: #f97316;
+      cursor: pointer; transition: all .18s;
+    }
+    .btn-mark-seen:hover { background: rgba(249,115,22,.2); }
+    .sb-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+    .sb-survey-link {
+      display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+      background: linear-gradient(135deg,rgba(79,142,247,.1),rgba(124,106,247,.08));
+      border: 1px solid rgba(124,106,247,.2); border-radius: var(--r-sm);
+      font-size: 13px; color: var(--accent); text-decoration: none;
+      transition: all .2s;
+    }
+    .sb-survey-link:hover { background: linear-gradient(135deg,rgba(79,142,247,.18),rgba(124,106,247,.14)); }
+
+    /* ── MAIN ────────────────────────────────── */
+    .main { margin-left: 240px; padding: 32px 32px 80px; min-height: 100vh; }
+    @media(max-width:768px){
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 20px; }
+    }
+
+    /* ── TOPBAR ──────────────────────────────── */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 32px; gap: 16px;
+    }
+    .topbar-left h1 { font-size: 24px; font-weight: 800; letter-spacing: -.5px; }
+    .topbar-left p  { font-size: 14px; color: var(--text-3); margin-top: 3px; }
+    .topbar-actions { display: flex; gap: 10px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px; border: none; cursor: pointer;
+      font-family: inherit; font-weight: 600; border-radius: var(--r-sm);
+      transition: all .18s var(--ease); text-decoration: none; white-space: nowrap;
+    }
+    .btn-sm { font-size: 13px; padding: 8px 14px; }
+    .btn-primary { background: linear-gradient(135deg,#4f8ef7,#7c6af7); color: #fff; box-shadow: 0 4px 14px rgba(79,142,247,.25); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(79,142,247,.35); }
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--border); font-size: 13px; padding: 8px 14px; }
+    .btn-ghost:hover { border-color: var(--border-2); color: var(--text-1); }
+
+    /* ── STAT CARDS ──────────────────────────── */
+    .stat-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+      margin-bottom: 28px;
+    }
+    @media(max-width:1100px){ .stat-grid { grid-template-columns: repeat(2,1fr); } }
+    @media(max-width:600px)  { .stat-grid { grid-template-columns: 1fr; } }
+
+    .stat-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 22px 22px;
+      box-shadow: var(--shadow);
+    }
+    .sc-label { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-3); margin-bottom: 10px; }
+    .sc-val   { font-size: 34px; font-weight: 800; letter-spacing: -1px; color: var(--text-1); line-height: 1; margin-bottom: 6px; }
+    .sc-val span { background: linear-gradient(120deg,#60a5fa,#a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .sc-sub   { font-size: 12px; color: var(--text-3); }
+    .sc-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 600; border-radius: 100px; padding: 3px 9px; margin-top: 8px;
+    }
+    .badge-up   { background: rgba(52,211,153,.1); color: var(--success); }
+    .badge-gold { background: rgba(251,191,36,.1);  color: var(--gold); }
+    .badge-blue { background: rgba(79,142,247,.1);  color: var(--accent); }
+
+    /* ── CHARTS GRID ─────────────────────────── */
+    .charts-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px;
+    }
+    @media(max-width:900px){ .charts-grid { grid-template-columns: 1fr; } }
+
+    .chart-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .chart-card.wide { grid-column: span 2; }
+    @media(max-width:900px){ .chart-card.wide { grid-column: span 1; } }
+
+    .chart-hd { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+    .chart-title { font-size: 15px; font-weight: 700; color: var(--text-1); }
+    .chart-sub   { font-size: 12px; color: var(--text-3); margin-top: 3px; }
+    .chart-wrap  { position: relative; height: 240px; }
+
+    /* ── FILTERS ─────────────────────────────── */
+    .filters-bar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .search-wrap {
+      position: relative; flex: 1; min-width: 200px;
+    }
+    .search-wrap input {
+      width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--r-sm); padding: 9px 12px 9px 36px;
+      font-family: inherit; font-size: 14px; color: var(--text-1); outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .search-wrap input:focus { border-color: var(--border-2); box-shadow: 0 0 0 3px var(--accent-s); }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-3); font-size: 14px; pointer-events: none; }
+    select.filter-sel {
+      background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--r-sm);
+      padding: 9px 32px 9px 12px; font-family: inherit; font-size: 13px; color: var(--text-2);
+      outline: none; cursor: pointer; -webkit-appearance: none; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235c5c6b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 10px center;
+      transition: border-color .2s;
+    }
+    select.filter-sel:focus { border-color: var(--border-2); outline: none; }
+    select.filter-sel option { background: #1c1c24; }
+
+    /* ── TABLE ───────────────────────────────── */
+    .table-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow);
+    }
+    .table-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+    }
+    .table-toolbar h2 { font-size: 16px; font-weight: 700; }
+    .record-count { font-size: 12px; color: var(--text-3); margin-left: 10px; }
+
+    .tbl-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: rgba(255,255,255,.03); text-align: left;
+      font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+      color: var(--text-3); padding: 12px 16px; border-bottom: 1px solid var(--border);
+      white-space: nowrap; cursor: pointer; user-select: none;
+    }
+    thead th:hover { color: var(--text-2); }
+    thead th .sort-icon { margin-left: 4px; opacity: .4; }
+    thead th.sorted .sort-icon { opacity: 1; color: var(--accent); }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+      cursor: pointer;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--bg-row-h); }
+
+    td { padding: 13px 16px; font-size: 14px; color: var(--text-1); vertical-align: middle; white-space: nowrap; }
+    td.muted { color: var(--text-2); }
+    td.small { font-size: 12px; color: var(--text-3); }
+
+    .tier-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      border-radius: 100px; padding: 3px 10px; font-size: 11px; font-weight: 600;
+    }
+    .tc-gold   { background: rgba(251,191,36,.1);  color: var(--gold);    border: 1px solid rgba(251,191,36,.2); }
+    .tc-blue   { background: rgba(124,106,247,.1); color: #a78bfa;        border: 1px solid rgba(124,106,247,.2); }
+    .tc-gray   { background: rgba(255,255,255,.05);color: var(--text-2);  border: 1px solid var(--border); }
+
+    .commit-dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+    }
+    .dot-yes { background: var(--success); box-shadow: 0 0 6px rgba(52,211,153,.5); }
+    .dot-no  { background: var(--text-3); }
+
+    .pain-bar-mini {
+      display: flex; gap: 3px; align-items: center;
+    }
+    .pbm { width: 18px; height: 18px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; }
+    .pbm-0 { background: rgba(255,255,255,.1); color: var(--text-3); }
+    .pbm-1 { background: #22c55e; }
+    .pbm-2 { background: #84cc16; }
+    .pbm-3 { background: #f59e0b; }
+    .pbm-4 { background: #f97316; }
+    .pbm-5 { background: #ef4444; }
+
+    /* ── PAGINATION ──────────────────────────── */
+    .pagination {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; border-top: 1px solid var(--border);
+      font-size: 13px; color: var(--text-3);
+    }
+    .pag-btns { display: flex; gap: 6px; }
+    .pag-btn {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      color: var(--text-2); cursor: pointer; font-family: inherit;
+      font-size: 13px; display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .pag-btn:hover:not(:disabled) { border-color: var(--border-2); color: var(--text-1); }
+    .pag-btn:disabled { opacity: .3; cursor: not-allowed; }
+    .pag-btn.active { background: var(--accent-s); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
+    /* ── DETAIL MODAL ────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,.75); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px; opacity: 0; pointer-events: none; transition: opacity .25s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--bg-card); border: 1px solid var(--border-2);
+      border-radius: var(--r-lg); width: 100%; max-width: 680px; max-height: 88vh;
+      overflow-y: auto; box-shadow: 0 40px 100px rgba(0,0,0,.7);
+      transform: translateY(20px); transition: transform .3s var(--ease);
+    }
+    .modal-overlay.open .modal { transform: none; }
+    .modal-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      padding: 24px 28px 20px; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: var(--bg-card); z-index: 10;
+    }
+    .modal-title { font-size: 18px; font-weight: 800; letter-spacing: -.3px; }
+    .modal-sub   { font-size: 13px; color: var(--text-3); margin-top: 3px; }
+    .modal-close {
+      width: 32px; height: 32px; border-radius: 8px; background: var(--bg-input);
+      border: 1px solid var(--border); cursor: pointer; color: var(--text-2);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+      transition: all .15s; flex-shrink: 0;
+    }
+    .modal-close:hover { background: var(--bg-row-h); color: var(--text-1); }
+    .modal-body { padding: 24px 28px 28px; }
+
+    .modal-section { margin-bottom: 24px; }
+    .modal-section-title { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-3); margin-bottom: 12px; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media(max-width:520px){ .modal-grid { grid-template-columns: 1fr; } }
+    .modal-field { }
+    .mf-label { font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+    .mf-val   { font-size: 14px; color: var(--text-1); line-height: 1.4; }
+    .mf-val.empty { color: var(--text-3); font-style: italic; }
+
+    .pain-row-modal { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .prm-label { font-size: 13px; color: var(--text-2); flex: 1; }
+    .prm-bar { flex: 2; height: 6px; background: rgba(255,255,255,.07); border-radius: 100px; overflow: hidden; }
+    .prm-fill { height: 100%; border-radius: 100px; }
+    .prm-val { font-size: 12px; font-weight: 600; width: 14px; text-align: right; }
+    .fill-0{background:rgba(255,255,255,.1);}
+    .fill-1{background:#22c55e;}
+    .fill-2{background:#84cc16;}
+    .fill-3{background:#f59e0b;}
+    .fill-4{background:#f97316;}
+    .fill-5{background:#ef4444;}
+    .val-0{color:var(--text-3);}
+    .val-1{color:#22c55e;}
+    .val-2{color:#84cc16;}
+    .val-3{color:#f59e0b;}
+    .val-4{color:#f97316;}
+    .val-5{color:#ef4444;}
+
+    /* ── EMPTY STATE ─────────────────────────── */
+    .empty-state {
+      text-align: center; padding: 64px 24px; color: var(--text-3);
+    }
+    .empty-icon { font-size: 40px; margin-bottom: 16px; opacity: .5; }
+    .empty-title { font-size: 17px; font-weight: 600; color: var(--text-2); margin-bottom: 8px; }
+    .empty-body  { font-size: 14px; line-height: 1.6; max-width: 320px; margin: 0 auto; }
+
+    /* ── STAR / HIGHLIGHT ────────────────────── */
+    .star-btn {
+      background: none; border: none; cursor: pointer; font-size: 18px;
+      padding: 4px 6px; border-radius: 6px; transition: all .15s;
+      color: var(--text-3); line-height: 1;
+    }
+    .star-btn:hover { background: rgba(251,191,36,.1); color: var(--gold); }
+    .star-btn.starred { color: var(--gold); }
+
+    .modal-star-row {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 14px; padding: 16px 18px;
+      background: rgba(251,191,36,.05); border: 1px solid rgba(251,191,36,.15);
+      border-radius: var(--r-sm); margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .modal-star-left { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+    .modal-star-left strong { color: var(--text-1); display: block; margin-bottom: 3px; }
+    .btn-star-toggle {
+      display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0;
+      background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.25);
+      border-radius: var(--r-sm); padding: 8px 14px;
+      font-family: inherit; font-size: 13px; font-weight: 600; color: var(--gold);
+      cursor: pointer; transition: all .18s; white-space: nowrap;
+    }
+    .btn-star-toggle:hover { background: rgba(251,191,36,.22); }
+    .btn-star-toggle.unstar {
+      background: rgba(255,255,255,.04); border-color: var(--border); color: var(--text-3);
+    }
+    .btn-star-toggle.unstar:hover { border-color: var(--border-2); color: var(--text-2); }
+
+    .admin-note-wrap { }
+    .admin-note-lbl { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--text-3); margin-bottom: 7px; }
+    .admin-note-wrap textarea {
+      width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--r-sm); padding: 12px 14px;
+      font-family: inherit; font-size: 14px; color: var(--text-1); outline: none;
+      resize: none; line-height: 1.6;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .admin-note-wrap textarea:focus {
+      border-color: rgba(251,191,36,.4); box-shadow: 0 0 0 3px rgba(251,191,36,.08);
+    }
+    .btn-save-note {
+      margin-top: 8px; display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.2);
+      border-radius: var(--r-sm); padding: 7px 14px;
+      font-family: inherit; font-size: 12px; font-weight: 600; color: var(--gold);
+      cursor: pointer; transition: all .18s;
+    }
+    .btn-save-note:hover { background: rgba(251,191,36,.18); }
+
+    /* ── LOADING ─────────────────────────────── */
+    .loading {
+      text-align: center; padding: 48px; color: var(--text-3); font-size: 14px;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .spinner {
+      width: 18px; height: 18px; border: 2px solid var(--border-2);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── TOAST ───────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: rgba(20,20,28,.96); backdrop-filter: blur(20px);
+      border: 1px solid var(--border); border-radius: var(--r-md);
+      padding: 12px 18px; font-size: 13px; color: var(--text-2);
+      z-index: 9999; transform: translateY(60px);
+      transition: transform .35s var(--ease);
+      display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    }
+    .toast.show { transform: translateY(0); }
+
+    /* ── AMBIENT ─────────────────────────────── */
+    .bg-fixed { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(120px); }
+    .o1 { width:600px;height:600px;background:radial-gradient(circle,#1a3a8f,transparent 65%);top:-200px;left:0;opacity:.10; }
+    .o2 { width:500px;height:500px;background:radial-gradient(circle,#4c2b8f,transparent 65%);bottom:-150px;right:60px;opacity:.08; }
+    .main, .sidebar { position: relative; z-index: 1; }
+  </style>
+</head>
+<body class="gate-locked">
+
+<!-- ── PASSWORD GATE OVERLAY ─────────────────── -->
+<div id="gate-overlay">
+  <div class="gate-bg-orb gate-orb1"></div>
+  <div class="gate-bg-orb gate-orb2"></div>
+  <div class="gate-card">
+    <div class="gate-gem">S</div>
+    <div class="gate-title">Admin Dashboard</div>
+    <div class="gate-sub">Saara Practice Intelligence Survey<br>Enter your password to continue.</div>
+    <label class="gate-label">Password</label>
+    <form onsubmit="event.preventDefault();gateSubmit()">
+    <input type="text" name="username" value="saara-admin" autocomplete="username" style="display:none" aria-hidden="true" />
+    <div class="gate-input-wrap">
+      <input class="gate-input" id="gate-input" type="password"
+             placeholder="••••••••••••"
+             onkeydown="if(event.key==='Enter')gateSubmit()"
+             autocomplete="current-password" />
+      <button class="gate-eye" type="button" onclick="gateToggleEye()" id="gate-eye-btn" title="Show/hide">👁</button>
+    </div>
+    </form>
+    <div class="gate-error" id="gate-error"></div>
+    <button class="gate-btn" onclick="gateSubmit()">Unlock Dashboard →</button>
+    <div class="gate-footer">Session stays active for 24 hours.<br>Contact Saara team for access.</div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const GATE_KEY  = 'saara_admin_auth';
+    const GATE_PASS = 'saara2026!1';
+    const TTL_MS    = 24 * 60 * 60 * 1000; // 24 hours
+
+    function gateUnlock(animate) {
+      document.body.classList.remove('gate-locked');
+      const ov = document.getElementById('gate-overlay');
+      if (animate) {
+        ov.classList.add('unlocked');
+        setTimeout(() => ov.remove(), 600);
+      } else {
+        ov.remove();
+      }
+    }
+
+    // Check stored session
+    const stored = localStorage.getItem(GATE_KEY);
+    if (stored) {
+      try {
+        const { ts } = JSON.parse(stored);
+        if (Date.now() - ts < TTL_MS) { gateUnlock(false); }
+        else { localStorage.removeItem(GATE_KEY); }
+      } catch(e) { localStorage.removeItem(GATE_KEY); }
+    }
+
+    window.gateSubmit = function() {
+      const val = document.getElementById('gate-input').value;
+      if (val === GATE_PASS) {
+        localStorage.setItem(GATE_KEY, JSON.stringify({ ts: Date.now() }));
+        gateUnlock(true);
+      } else {
+        const inp = document.getElementById('gate-input');
+        const err = document.getElementById('gate-error');
+        err.textContent = 'Incorrect password. Please try again.';
+        inp.classList.add('shake');
+        inp.value = '';
+        setTimeout(() => inp.classList.remove('shake'), 500);
+      }
+    };
+
+    window.gateToggleEye = function() {
+      const inp = document.getElementById('gate-input');
+      const btn = document.getElementById('gate-eye-btn');
+      if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+      else { inp.type = 'password'; btn.textContent = '👁'; }
+    };
+
+    // Auto-focus input after a tick
+    setTimeout(() => {
+      const inp = document.getElementById('gate-input');
+      if (inp) inp.focus();
+    }, 100);
+  })();
+</script>
+
+<div class="bg-fixed">
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+</div>
+
+<!-- ── SIDEBAR ───────────────────────────────── -->
+<aside class="sidebar">
+  <a class="sb-logo" href="index.html">
+    <div class="sb-gem">S</div>
+    <span class="sb-brand">saara</span>
+  </a>
+
+  <p class="sb-section">Dashboard</p>
+  <nav class="sb-nav">
+    <a class="active"><span class="sb-icon">📊</span> Overview</a>
+    <a onclick="scrollTo({top:0,behavior:'smooth'})"><span class="sb-icon">📋</span> All Responses <span class="new-badge hidden" id="sb-new-badge">0</span></a>
+  </nav>
+
+  <hr class="sb-divider" />
+
+  <p class="sb-section">Actions</p>
+  <nav class="sb-nav">
+    <a onclick="exportCSV()"><span class="sb-icon">⬇️</span> Export CSV</a>
+    <a onclick="loadData()"><span class="sb-icon">🔄</span> Refresh Data</a>
+  </nav>
+
+  <hr class="sb-divider" />
+
+  <a class="sb-survey-link" href="index.html" target="_blank">
+    <span>✦</span> Open Survey
+  </a>
+</aside>
+
+<!-- ── MAIN ──────────────────────────────────── -->
+<main class="main">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1>Response Dashboard</h1>
+      <p>Saara Practice Intelligence Survey · Live results · <span id="last-checked-label" style="color:var(--accent);font-weight:500"></span></p>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost btn-sm" onclick="loadData()">🔄 Refresh</button>
+      <button class="btn btn-primary btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+    </div>
+  </div>
+
+  <!-- New-responses banner -->
+  <div class="since-banner hidden" id="since-banner">
+    <div class="since-banner-left">
+      <div class="since-dot"></div>
+      <div>
+        <div class="since-text" id="since-text">New responses since your last visit</div>
+        <div class="since-sub"  id="since-sub">Loading…</div>
+      </div>
+    </div>
+    <button class="btn-mark-seen" onclick="markAllSeen()">✓ Mark all as seen</button>
+  </div>
+
+  <!-- Stat Cards -->
+  <div class="stat-grid" id="stat-grid">
+    <div class="stat-card">
+      <div class="sc-label">Total Responses</div>
+      <div class="sc-val"><span id="stat-total">—</span></div>
+      <div class="sc-sub">Survey submissions received</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-label">Soft Commitments</div>
+      <div class="sc-val"><span id="stat-committed">—</span></div>
+      <div class="sc-sub">Expressed formal interest</div>
+      <span class="sc-badge badge-up" id="stat-committed-pct">— signed</span>
+    </div>
+    <div class="stat-card">
+      <div class="sc-label">Demo Requests</div>
+      <div class="sc-val"><span id="stat-demos">—</span></div>
+      <div class="sc-sub">Requested or open to a demo</div>
+      <span class="sc-badge badge-blue" id="stat-demos-pct">of respondents</span>
+    </div>
+    <div class="stat-card">
+      <div class="sc-label">Founding Partners</div>
+      <div class="sc-val"><span id="stat-founding">—</span></div>
+      <div class="sc-sub">Selected beta / founding tier</div>
+      <span class="sc-badge badge-gold">⭐ High-priority leads</span>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid">
+
+    <div class="chart-card">
+      <div class="chart-hd">
+        <div>
+          <div class="chart-title">Average Pain Score by Category</div>
+          <div class="chart-sub">1 = No issue · 5 = Critical pain</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chartPain"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-hd">
+        <div>
+          <div class="chart-title">#1 Operational Challenge</div>
+          <div class="chart-sub">Self-identified biggest problem</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chartTopPain"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-hd">
+        <div>
+          <div class="chart-title">Interest & Commitment Tiers</div>
+          <div class="chart-sub">Breakdown of selected commitment levels</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chartTiers"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-hd">
+        <div>
+          <div class="chart-title">Adoption Timeline</div>
+          <div class="chart-sub">How quickly respondents could move</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chartTimeline"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card wide">
+      <div class="chart-hd">
+        <div>
+          <div class="chart-title">Responses by Specialty</div>
+          <div class="chart-sub">Distribution of respondents across medical specialties</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:280px;">
+        <canvas id="chartSpecialty"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-input" placeholder="Search by name, clinic, email, specialty…" oninput="applyFilters()" />
+    </div>
+    <select class="filter-sel" id="filter-tier" onchange="applyFilters()">
+      <option value="">All Tiers</option>
+      <option value="Founding">⭐ Founding Partner</option>
+      <option value="Early Access">🚀 Early Access</option>
+      <option value="Stay Informed">📬 Stay Informed</option>
+    </select>
+    <select class="filter-sel" id="filter-commit" onchange="applyFilters()">
+      <option value="">All Commitments</option>
+      <option value="yes">✓ Signed</option>
+      <option value="no">Not signed</option>
+    </select>
+    <select class="filter-sel" id="filter-demo" onchange="applyFilters()">
+      <option value="">All Demo Interest</option>
+      <option value="Very interested">🚀 Schedule ASAP</option>
+      <option value="Interested">📬 Send Info</option>
+      <option value="Curious">🤔 Keep Updated</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-toolbar">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <h2>All Responses</h2>
+        <span class="record-count" id="record-count"></span>
+      </div>
+    </div>
+
+    <div id="table-body">
+      <div class="loading"><div class="spinner"></div> Loading responses…</div>
+    </div>
+
+    <div class="pagination" id="pagination" style="display:none;">
+      <span id="pag-info"></span>
+      <div class="pag-btns" id="pag-btns"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── DETAIL MODAL ──────────────────────────── -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="m-name">—</div>
+        <div class="modal-sub" id="m-clinic-specialty">—</div>
+      </div>
+      <button class="modal-close" onclick="closeModalDirect()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <!-- Injected -->
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span id="t-ico">✓</span>
+  <span id="t-msg">Done</span>
+</div>
+
+<!-- ── JAVASCRIPT ─────────────────────────────── -->
+<script>
+  Chart.defaults.color = '#5c5c6b';
+  Chart.defaults.borderColor = 'rgba(255,255,255,0.07)';
+
+  let allData = [];
+  let filteredData = [];
+  let currentPage = 1;
+  const PAGE_SIZE = 15;
+  let charts = {};
+
+  // ── Last-visit tracking ────────────────────────
+  const LS_KEY = 'saara_admin_last_seen';
+
+  function getLastSeen() {
+    const v = localStorage.getItem(LS_KEY);
+    return v ? parseInt(v, 10) : 0;
+  }
+
+  function markAllSeen() {
+    const now = Date.now();
+    localStorage.setItem(LS_KEY, now.toString());
+    document.getElementById('since-banner').classList.add('hidden');
+    document.getElementById('sb-new-badge').classList.add('hidden');
+    document.querySelectorAll('.new-row-pill').forEach(el => el.remove());
+    updateLastCheckedLabel(now);
+    showToast('✓ All responses marked as seen');
+  }
+
+  function updateLastCheckedLabel(ts) {
+    const el = document.getElementById('last-checked-label');
+    if (!el) return;
+    if (!ts || ts === 0) { el.textContent = 'First visit'; return; }
+    const diff = Date.now() - ts;
+    const mins = Math.floor(diff / 60000);
+    const hrs  = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (mins < 1)       el.textContent = 'Last checked just now';
+    else if (mins < 60) el.textContent = `Last checked ${mins}m ago`;
+    else if (hrs < 24)  el.textContent = `Last checked ${hrs}h ago`;
+    else                el.textContent = `Last checked ${days}d ago`;
+  }
+
+  function applyNewBadges() {
+    const lastSeen = getLastSeen();
+
+    // First ever visit — record timestamp, no banner needed
+    if (!lastSeen) {
+      localStorage.setItem(LS_KEY, Date.now().toString());
+      updateLastCheckedLabel(Date.now());
+      return;
+    }
+
+    updateLastCheckedLabel(lastSeen);
+
+    const newItems = allData.filter(r => {
+      const ts = r.submitted_at || r.created_at || 0;
+      return ts > lastSeen;
+    });
+
+    const count = newItems.length;
+    const badge  = document.getElementById('sb-new-badge');
+    const banner = document.getElementById('since-banner');
+
+    if (count === 0) {
+      badge.classList.add('hidden');
+      banner.classList.add('hidden');
+      return;
+    }
+
+    // Sidebar badge
+    badge.textContent = count > 99 ? '99+' : count;
+    badge.classList.remove('hidden');
+
+    // Banner text
+    const tsVals = newItems.map(r => r.submitted_at || r.created_at || Date.now());
+    const oldest = new Date(Math.min(...tsVals));
+    const fmt = oldest.toLocaleDateString('en-US', { month:'short', day:'numeric' })
+              + ' at ' + oldest.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+    document.getElementById('since-text').textContent =
+      count === 1 ? '1 new response since your last visit'
+                  : `${count} new responses since your last visit`;
+    document.getElementById('since-sub').textContent =
+      `Earliest new submission: ${fmt} · Click "Mark all as seen" to clear`;
+    banner.classList.remove('hidden');
+  }
+
+  // ── Fetch ──────────────────────────────────────
+  async function loadData() {
+    document.getElementById('table-body').innerHTML = `<div class="loading"><div class="spinner"></div> Loading responses…</div>`;
+    try {
+      let page = 1, all = [];
+      while (true) {
+        const r = await fetch(`tables/saara_responses?page=${page}&limit=100`);
+        const d = await r.json();
+        all = all.concat(d.data || []);
+        if (all.length >= d.total || !d.data?.length) break;
+        page++;
+      }
+      allData = all.sort((a,b) => (b.submitted_at || b.created_at) - (a.submitted_at || a.created_at));
+      filteredData = [...allData];
+      currentPage = 1;
+      renderStats();
+      renderCharts();
+      renderTable();
+      applyNewBadges();
+    } catch (e) {
+      document.getElementById('table-body').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">⚠️</div>
+          <div class="empty-title">Could not load data</div>
+          <div class="empty-body">Check your connection and try refreshing.</div>
+        </div>`;
+    }
+  }
+
+  // ── Stats ──────────────────────────────────────
+  function renderStats() {
+    const total     = allData.length;
+    const committed = allData.filter(r => r.soft_commitment).length;
+    const demos     = allData.filter(r => r.demo_interest && !r.demo_interest.includes('Not interested')).length;
+    const founding  = allData.filter(r => r.commitment_tier?.includes('Founding')).length;
+
+    document.getElementById('stat-total').textContent     = total;
+    document.getElementById('stat-committed').textContent = committed;
+    document.getElementById('stat-demos').textContent     = demos;
+    document.getElementById('stat-founding').textContent  = founding;
+
+    const cpct = total ? Math.round(committed/total*100) : 0;
+    const dpct = total ? Math.round(demos/total*100) : 0;
+    document.getElementById('stat-committed-pct').textContent = `${cpct}% signed`;
+    document.getElementById('stat-demos-pct').textContent = `${dpct}% of respondents`;
+  }
+
+  // ── Charts ─────────────────────────────────────
+  function renderCharts() {
+    // Pain averages
+    const painFields = [
+      { key: 'pain_billing',        label: 'Billing' },
+      { key: 'pain_compliance',     label: 'Compliance' },
+      { key: 'pain_scheduling',     label: 'Scheduling' },
+      { key: 'pain_clinical_notes', label: 'Documentation' },
+      { key: 'pain_staff',          label: 'Staff' },
+      { key: 'pain_patient_comms',  label: 'Patient Comms' },
+    ];
+    const painAvgs = painFields.map(f => {
+      const vals = allData.map(r => r[f.key]).filter(v => v > 0);
+      return vals.length ? +(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : 0;
+    });
+    buildOrUpdate('chartPain', 'bar', painFields.map(f=>f.label), painAvgs, {
+      colors: painAvgs.map(v => v >= 4 ? '#ef4444' : v >= 3 ? '#f97316' : v >= 2 ? '#f59e0b' : '#34d399'),
+      yMax: 5,
+      xTitle: '',
+    });
+
+    // Top pain
+    const tpCounts = {};
+    allData.forEach(r => {
+      if (r.top_pain_point) {
+        const k = r.top_pain_point.split(' — ')[0].replace(/^[^\w]+/, '').trim();
+        tpCounts[k] = (tpCounts[k]||0)+1;
+      }
+    });
+    const tpSorted = Object.entries(tpCounts).sort((a,b)=>b[1]-a[1]);
+    buildOrUpdateDoughnut('chartTopPain', tpSorted.map(e=>e[0]), tpSorted.map(e=>e[1]));
+
+    // Commitment tiers
+    const tierCounts = { 'Founding Partner': 0, 'Early Access': 0, 'Stay Informed': 0, 'No tier': 0 };
+    allData.forEach(r => {
+      const t = r.commitment_tier || '';
+      if (t.includes('Founding')) tierCounts['Founding Partner']++;
+      else if (t.includes('Early')) tierCounts['Early Access']++;
+      else if (t.includes('Informed') || t.includes('Demo')) tierCounts['Stay Informed']++;
+      else tierCounts['No tier']++;
+    });
+    buildOrUpdateDoughnut('chartTiers',
+      Object.keys(tierCounts).filter(k=>tierCounts[k]>0),
+      Object.values(tierCounts).filter(v=>v>0),
+      ['#fbbf24','#7c6af7','#4f8ef7','#5c5c6b']
+    );
+
+    // Timeline
+    const tlCounts = {};
+    allData.forEach(r => {
+      if (r.shopping_timeline) {
+        const short = r.shopping_timeline.replace('Immediately — I\'m actively looking now','Immediately').replace('Not sure yet','Not sure');
+        tlCounts[short] = (tlCounts[short]||0)+1;
+      }
+    });
+    const tlSorted = Object.entries(tlCounts).sort((a,b)=>b[1]-a[1]);
+    buildOrUpdate('chartTimeline','bar', tlSorted.map(e=>e[0]), tlSorted.map(e=>e[1]), {
+      colors: '#4f8ef7', horizontal: true
+    });
+
+    // Specialty
+    const spCounts = {};
+    allData.forEach(r => { if (r.specialty) spCounts[r.specialty] = (spCounts[r.specialty]||0)+1; });
+    const spSorted = Object.entries(spCounts).sort((a,b)=>b[1]-a[1]);
+    buildOrUpdate('chartSpecialty','bar', spSorted.map(e=>e[0]), spSorted.map(e=>e[1]), {
+      colors: '#7c6af7'
+    });
+  }
+
+  function buildOrUpdate(id, type, labels, data, opts={}) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    if (charts[id]) { charts[id].destroy(); }
+    const colors = Array.isArray(opts.colors) ? opts.colors : (labels.map(() => opts.colors || '#4f8ef7'));
+    charts[id] = new Chart(canvas, {
+      type,
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: colors.map(c => c+'cc'),
+          borderColor: colors,
+          borderWidth: 1,
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        indexAxis: opts.horizontal ? 'y' : 'x',
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw}` } } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#5c5c6b', font: { size: 11 } }, max: opts.xMax },
+          y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#5c5c6b', font: { size: 11 } }, max: opts.yMax, beginAtZero: true },
+        }
+      }
+    });
+  }
+
+  function buildOrUpdateDoughnut(id, labels, data, colors) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    if (charts[id]) { charts[id].destroy(); }
+    const palette = colors || ['#4f8ef7','#7c6af7','#34d399','#fbbf24','#f87171','#a78bfa'];
+    charts[id] = new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{ data, backgroundColor: palette.slice(0,labels.length), borderWidth: 0, hoverOffset: 8 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '62%',
+        plugins: {
+          legend: { position: 'right', labels: { color: '#9b9ba8', font: { size: 11 }, padding: 12, boxWidth: 10, boxHeight: 10 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}` } }
+        }
+      }
+    });
+  }
+
+  // ── Filters ────────────────────────────────────
+  function applyFilters() {
+    const q     = document.getElementById('search-input').value.toLowerCase();
+    const tier  = document.getElementById('filter-tier').value;
+    const commit= document.getElementById('filter-commit').value;
+    const demo  = document.getElementById('filter-demo').value;
+
+    filteredData = allData.filter(r => {
+      const text = [r.doctor_name,r.clinic_name,r.email,r.specialty].join(' ').toLowerCase();
+      if (q && !text.includes(q)) return false;
+      if (tier && !r.commitment_tier?.includes(tier)) return false;
+      if (commit === 'yes' && !r.soft_commitment) return false;
+      if (commit === 'no'  && r.soft_commitment)  return false;
+      if (demo && !r.demo_interest?.includes(demo)) return false;
+      return true;
+    });
+    currentPage = 1;
+    renderTable();
+  }
+
+  // ── Table ──────────────────────────────────────
+  function renderTable() {
+    const start = (currentPage-1)*PAGE_SIZE;
+    const pageData = filteredData.slice(start, start+PAGE_SIZE);
+
+    document.getElementById('record-count').textContent = `${filteredData.length} record${filteredData.length!==1?'s':''}`;
+
+    if (!filteredData.length) {
+      document.getElementById('table-body').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <div class="empty-title">${allData.length ? 'No results match your filters' : 'No responses yet'}</div>
+          <div class="empty-body">${allData.length ? 'Try adjusting your search or filters.' : 'Share the survey link to start collecting responses. They will appear here in real time.'}</div>
+        </div>`;
+      document.getElementById('pagination').style.display = 'none';
+      return;
+    }
+
+    const rows = pageData.map(r => {
+      const lastSeen = getLastSeen();
+      const rTs = r.submitted_at || r.created_at || 0;
+      const isNew = lastSeen > 0 && rTs > lastSeen;
+      const newPill = isNew ? `<span class="new-row-pill">● New</span>` : '';
+
+      const starBtn = `<button class="star-btn ${r.is_starred?'starred':''}" onclick="event.stopPropagation();toggleStar('${r.id}',${!r.is_starred})" title="${r.is_starred?'Remove from investor board':'Feature on investor board'}">${r.is_starred?'⭐':'☆'}</button>`;
+      const tier = r.commitment_tier || '';
+      const tierChip = tier.includes('Founding')
+        ? `<span class="tier-chip tc-gold">⭐ Founding</span>`
+        : tier.includes('Early')
+        ? `<span class="tier-chip tc-blue">🚀 Early Access</span>`
+        : tier.includes('Informed') || tier.includes('Demo')
+        ? `<span class="tier-chip tc-gray">📬 Informed</span>`
+        : `<span style="color:var(--text-3);font-size:12px;">—</span>`;
+
+      const commitDot = r.soft_commitment
+        ? `<span class="commit-dot dot-yes" title="Signed"></span>`
+        : `<span class="commit-dot dot-no" title="Not signed"></span>`;
+
+      const painMini = ['billing','compliance','scheduling','clinical_notes','staff','patient_comms'].map(k => {
+        const v = r[`pain_${k}`] || 0;
+        return `<div class="pbm pbm-${v}" title="${k}: ${v}">${v||'·'}</div>`;
+      }).join('');
+
+      const date = r.submitted_at
+        ? new Date(r.submitted_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})
+        : '—';
+
+      const demo = r.demo_interest?.includes('ASAP') ? '🚀 ASAP'
+                 : r.demo_interest?.includes('first') ? '📬 Info First'
+                 : r.demo_interest?.includes('loop')  ? '🤔 Keep Updated'
+                 : r.demo_interest?.includes('Not')   ? '✋ No'
+                 : '—';
+
+      return `<tr class="${isNew ? 'new-row' : ''}" onclick="openModal('${r.id}')">
+        <td><strong>${esc(r.doctor_name || '—')}</strong>${newPill}</td>
+        <td class="muted">${esc(r.clinic_name || '—')}</td>
+        <td class="muted">${esc(r.specialty || '—')}</td>
+        <td>${tierChip}</td>
+        <td>${commitDot}</td>
+        <td><div class="pain-bar-mini">${painMini}</div></td>
+        <td class="muted">${demo}</td>
+        <td class="small">${date}</td>
+        <td style="text-align:center;">${starBtn}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('table-body').innerHTML = `
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Practice</th>
+              <th>Specialty</th>
+              <th>Tier</th>
+              <th title="Soft Commitment">✓</th>
+              <th>Pain Map <span style="font-size:10px;color:var(--text-3)">(B·C·S·D·St·P)</span></th>
+              <th>Demo</th>
+              <th>Submitted</th>
+              <th title="Feature on investor board">⭐</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+
+    renderPagination();
+  }
+
+  // ── Pagination ─────────────────────────────────
+  function renderPagination() {
+    const pag = document.getElementById('pagination');
+    const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
+    if (totalPages <= 1) { pag.style.display = 'none'; return; }
+    pag.style.display = 'flex';
+
+    const start = (currentPage-1)*PAGE_SIZE+1;
+    const end   = Math.min(currentPage*PAGE_SIZE, filteredData.length);
+    document.getElementById('pag-info').textContent = `Showing ${start}–${end} of ${filteredData.length}`;
+
+    let btns = `<button class="pag-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+    for (let p=1; p<=totalPages; p++) {
+      if (totalPages > 7 && p > 2 && p < totalPages - 1 && Math.abs(p-currentPage) > 1) {
+        if (p === 3 || p === totalPages - 2) btns += `<span style="color:var(--text-3);padding:0 4px;">…</span>`;
+        continue;
+      }
+      btns += `<button class="pag-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+    }
+    btns += `<button class="pag-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
+    document.getElementById('pag-btns').innerHTML = btns;
+  }
+
+  function goPage(p) {
+    const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
+    if (p < 1 || p > totalPages) return;
+    currentPage = p;
+    renderTable();
+    document.querySelector('.table-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── Modal ──────────────────────────────────────
+  function openModal(id) {
+    const r = allData.find(x => x.id === id);
+    if (!r) return;
+
+    document.getElementById('m-name').textContent = r.doctor_name || '—';
+    document.getElementById('m-clinic-specialty').textContent = [r.clinic_name, r.specialty].filter(Boolean).join(' · ') || '—';
+
+    const tier = r.commitment_tier || '';
+    const tierBadge = tier.includes('Founding')
+      ? `<span class="tier-chip tc-gold">⭐ ${tier}</span>`
+      : tier.includes('Early')
+      ? `<span class="tier-chip tc-blue">🚀 ${tier}</span>`
+      : tier
+      ? `<span class="tier-chip tc-gray">📬 ${tier}</span>`
+      : '<span style="color:var(--text-3)">No tier selected</span>';
+
+    const painRows = [
+      { label:'💰 Billing', val: r.pain_billing },
+      { label:'📑 Compliance', val: r.pain_compliance },
+      { label:'📅 Scheduling', val: r.pain_scheduling },
+      { label:'📋 Documentation', val: r.pain_clinical_notes },
+      { label:'👥 Staff', val: r.pain_staff },
+      { label:'💬 Patient Comms', val: r.pain_patient_comms },
+    ].map(p => {
+      const v = p.val || 0;
+      return `<div class="pain-row-modal">
+        <div class="prm-label">${p.label}</div>
+        <div class="prm-bar"><div class="prm-fill fill-${v}" style="width:${v*20}%"></div></div>
+        <div class="prm-val val-${v}">${v||'—'}</div>
+      </div>`;
+    }).join('');
+
+    const mf = (label, val) => `<div class="modal-field">
+      <div class="mf-label">${label}</div>
+      <div class="mf-val ${!val?'empty':''}">${val || 'Not provided'}</div>
+    </div>`;
+
+    const date = r.submitted_at
+      ? new Date(r.submitted_at).toLocaleString('en-US', {dateStyle:'medium',timeStyle:'short'})
+      : '—';
+
+    document.getElementById('modal-body').innerHTML = `
+      <div class="modal-section">
+        <div class="modal-section-title">Practice Information</div>
+        <div class="modal-grid">
+          ${mf('Email', r.email)}
+          ${mf('Practice Size', r.practice_size)}
+          ${mf('Years in Practice', r.years_in_practice)}
+          ${mf('Submitted', date)}
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Pain Score Map</div>
+        ${painRows}
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Clinical Operations</div>
+        <div class="modal-grid">
+          ${mf('#1 Challenge', r.top_pain_point)}
+          ${mf('Documentation Hours/Week', r.documentation_hours)}
+          ${mf('Prior Auth Volume', r.prior_auth_weekly)}
+          ${mf('Billing Details', r.billing_detail)}
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Financial Picture</div>
+        <div class="modal-grid">
+          ${mf('Annual Revenue Est.', r.annual_revenue_est)}
+          ${mf('Monthly Revenue Lost', r.monthly_revenue_lost)}
+          ${mf('Billing Management', r.current_billing_vendor)}
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Technology & Readiness</div>
+        <div class="modal-grid">
+          ${mf('Current EHR / Tools', r.current_tools)}
+          ${mf('AI Familiarity', r.ai_openness)}
+          ${mf('Adoption Timeline', r.shopping_timeline)}
+          ${mf('Budget Authority', r.budget_authority)}
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Interest & Commitment</div>
+        <div class="modal-grid">
+          ${mf('Demo Interest', r.demo_interest)}
+          ${mf('Confidence Factors', r.confidence_factors)}
+          ${mf('How They Heard', r.referral_source)}
+          ${mf('Would Refer Peers', r.would_refer)}
+        </div>
+        <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div>${tierBadge}</div>
+          <div style="font-size:13px;color:${r.soft_commitment?'var(--success)':'var(--text-3)'}">
+            ${r.soft_commitment ? '✓ Soft commitment signed' : '○ No soft commitment'}
+          </div>
+        </div>
+      </div>
+
+      ${r.additional_comments ? `<div class="modal-section">
+        <div class="modal-section-title">Additional Comments</div>
+        <div style="font-size:14px;color:var(--text-2);line-height:1.7;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;">${esc(r.additional_comments)}</div>
+      </div>` : ''}
+
+      <div class="modal-section">
+        <div class="modal-section-title">⭐ Investor Board</div>
+        <div class="modal-star-row">
+          <div class="modal-star-left">
+            <strong>${r.is_starred ? '⭐ Currently featured on investor board' : 'Not yet featured'}</strong>
+            Star this response to show it in the highlight reel on the investor dashboard.
+          </div>
+          <button class="btn-star-toggle ${r.is_starred?'unstar':''}" id="modal-star-btn" onclick="toggleStar('${r.id}',${!r.is_starred},true)">
+            ${r.is_starred ? '☆ Remove' : '⭐ Feature This'}
+          </button>
+        </div>
+        <div class="admin-note-wrap">
+          <div class="admin-note-lbl">Highlight Quote / Admin Note <span style="font-weight:400;text-transform:none;letter-spacing:0;">(shown on investor board)</span></div>
+          <textarea id="admin-note-input" rows="3" placeholder="Write a quote or note to feature alongside this response on the investor board…">${esc(r.admin_note||'')}</textarea>
+          <button class="btn-save-note" onclick="saveAdminNote('${r.id}')">💾 Save Note</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('modal-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById('modal-overlay')) closeModalDirect();
+  }
+  function closeModalDirect() {
+    document.getElementById('modal-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModalDirect(); });
+
+  // ── Star / Unstar ──────────────────────────────
+  async function toggleStar(id, newVal, fromModal = false) {
+    try {
+      await fetch(`tables/saara_responses/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_starred: newVal })
+      });
+      const r = allData.find(x => x.id === id);
+      if (r) r.is_starred = newVal;
+      showToast(newVal ? '⭐ Featured on investor board' : 'Removed from investor board');
+      if (fromModal) {
+        const btn = document.getElementById('modal-star-btn');
+        if (btn) {
+          btn.textContent = newVal ? '☆ Remove' : '⭐ Feature This';
+          btn.classList.toggle('unstar', newVal);
+          btn.setAttribute('onclick', `toggleStar('${id}',${!newVal},true)`);
+          // Update the strong label above
+          const strong = btn.closest('.modal-star-row')?.querySelector('strong');
+          if (strong) strong.textContent = newVal ? '⭐ Currently featured on investor board' : 'Not yet featured';
+        }
+      }
+      renderTable();
+    } catch(e) {
+      showToast('Failed to update. Try again.', true);
+    }
+  }
+
+  // ── Save Admin Note ───────────────────────────
+  async function saveAdminNote(id) {
+    const note = document.getElementById('admin-note-input')?.value?.trim() ?? '';
+    try {
+      await fetch(`tables/saara_responses/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_note: note })
+      });
+      const r = allData.find(x => x.id === id);
+      if (r) r.admin_note = note;
+      showToast('💾 Note saved — visible on investor board');
+    } catch(e) {
+      showToast('Failed to save note.', true);
+    }
+  }
+
+  // ── Export CSV ─────────────────────────────────
+  function exportCSV() {
+    if (!allData.length) { showToast('No data to export.', true); return; }
+    const fields = [
+      'doctor_name','clinic_name','specialty','practice_size','email','years_in_practice',
+      'pain_billing','pain_compliance','pain_scheduling','pain_clinical_notes','pain_staff','pain_patient_comms',
+      'top_pain_point','billing_detail','documentation_hours','prior_auth_weekly',
+      'annual_revenue_est','monthly_revenue_lost','current_billing_vendor',
+      'current_tools','ai_openness','shopping_timeline','budget_authority',
+      'demo_interest','confidence_factors','referral_source','would_refer',
+      'commitment_tier','soft_commitment','additional_comments','submitted_at'
+    ];
+    const headers = fields.join(',');
+    const rows = allData.map(r =>
+      fields.map(f => {
+        let v = r[f] ?? '';
+        if (f === 'submitted_at' && v) v = new Date(v).toISOString();
+        if (f === 'soft_commitment') v = v ? 'Yes' : 'No';
+        return `"${String(v).replace(/"/g,'""')}"`;
+      }).join(',')
+    );
+    const csv = [headers, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `saara-responses-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exported ${allData.length} records as CSV`);
+  }
+
+  // ── Helpers ────────────────────────────────────
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function showToast(msg, err=false) {
+    const t = document.getElementById('toast');
+    document.getElementById('t-msg').textContent = msg;
+    document.getElementById('t-ico').textContent = err ? '✕' : '✓';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  // ── Init ───────────────────────────────────────
+  loadData();
+</script>
+</body>
+</html>

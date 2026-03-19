@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Saara — Investor Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── PASSWORD GATE ───────────────────────────── */
+    #gate-overlay {
+      position: fixed; inset: 0; z-index: 99999;
+      background: #000;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Inter', -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    #gate-overlay.unlocked {
+      pointer-events: none;
+      animation: gate-fade-out .55s cubic-bezier(0.4,0,0.2,1) forwards;
+    }
+    @keyframes gate-fade-out {
+      0%   { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1.03); }
+    }
+    .gate-bg-orb {
+      position: absolute; border-radius: 50%; filter: blur(120px); pointer-events: none;
+    }
+    .gate-orb1 { width:700px;height:700px;background:radial-gradient(circle,#1a3a8f,transparent 65%);top:-200px;left:-150px;opacity:.18; }
+    .gate-orb2 { width:500px;height:500px;background:radial-gradient(circle,#4c2b8f,transparent 65%);bottom:-100px;right:-80px;opacity:.14; }
+    .gate-card {
+      position: relative; z-index: 2;
+      width: 100%; max-width: 400px; margin: 20px;
+      background: rgba(12,12,16,0.95);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 24px; padding: 44px 40px 40px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 32px 80px rgba(0,0,0,0.7);
+      text-align: center;
+    }
+    .gate-gem {
+      width: 56px; height: 56px; border-radius: 16px;
+      background: linear-gradient(145deg,#4f8ef7,#7c6af7);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 800; color: #fff;
+      margin: 0 auto 20px;
+      box-shadow: 0 0 32px rgba(124,106,247,.45);
+    }
+    .gate-title { font-size: 22px; font-weight: 800; letter-spacing: -.5px; color: #f2f2f7; margin-bottom: 6px; }
+    .gate-sub   { font-size: 13px; color: #5c5c6b; margin-bottom: 32px; line-height: 1.5; }
+    .gate-label {
+      display: block; text-align: left;
+      font-size: 11px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase;
+      color: #5c5c6b; margin-bottom: 8px;
+    }
+    .gate-input-wrap { position: relative; margin-bottom: 16px; }
+    .gate-input {
+      width: 100%; padding: 14px 46px 14px 16px;
+      background: #111116; border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 12px; font-family: inherit; font-size: 15px;
+      color: #f2f2f7; outline: none; letter-spacing: .5px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .gate-input:focus { border-color: rgba(79,142,247,.5); box-shadow: 0 0 0 3px rgba(79,142,247,.12); }
+    .gate-input.shake {
+      animation: gate-shake .4s cubic-bezier(0.36,0.07,0.19,0.97);
+      border-color: rgba(248,113,113,.6) !important;
+      box-shadow: 0 0 0 3px rgba(248,113,113,.12) !important;
+    }
+    @keyframes gate-shake {
+      10%,90%  { transform: translateX(-3px); }
+      20%,80%  { transform: translateX( 4px); }
+      30%,50%,70% { transform: translateX(-5px); }
+      40%,60%  { transform: translateX( 5px); }
+    }
+    .gate-eye {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: #5c5c6b;
+      font-size: 16px; padding: 4px; transition: color .15s;
+    }
+    .gate-eye:hover { color: #9b9ba8; }
+    .gate-error { font-size: 12px; color: #f87171; margin-bottom: 14px; min-height: 16px; text-align: left; }
+    .gate-btn {
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg,#4f8ef7,#7c6af7);
+      border: none; border-radius: 12px; cursor: pointer;
+      font-family: inherit; font-size: 15px; font-weight: 700;
+      color: #fff; letter-spacing: -.1px;
+      box-shadow: 0 4px 20px rgba(79,142,247,.35);
+      transition: all .2s cubic-bezier(0.4,0,0.2,1);
+    }
+    .gate-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(79,142,247,.45); }
+    .gate-btn:active { transform: translateY(0); }
+    .gate-footer { font-size: 11px; color: #3a3a4a; margin-top: 24px; line-height: 1.6; }
+    body.gate-locked > *:not(#gate-overlay) { visibility: hidden; }
+
+    :root {
+      --bg:         #000;
+      --bg-2:       #08080d;
+      --bg-card:    #0c0c10;
+      --bg-input:   #111116;
+      --border:     rgba(255,255,255,0.07);
+      --border-2:   rgba(255,255,255,0.13);
+      --accent:     #4f8ef7;
+      --accent-2:   #7c6af7;
+      --accent-s:   rgba(79,142,247,0.10);
+      --success:    #34d399;
+      --gold:       #fbbf24;
+      --text-1:     #f2f2f7;
+      --text-2:     #9b9ba8;
+      --text-3:     #5c5c6b;
+      --r-sm:10px; --r-md:16px; --r-lg:22px; --r-xl:32px;
+      --ease: cubic-bezier(0.4,0,0.2,1);
+      --shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 20px 60px rgba(0,0,0,0.55);
+    }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    html { scroll-behavior:smooth; }
+    body {
+      font-family:'Inter',-apple-system,sans-serif;
+      background:var(--bg); color:var(--text-1);
+      -webkit-font-smoothing:antialiased;
+    }
+
+    /* ── AMBIENT ─── */
+    .bg-fixed { position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden; }
+    .orb { position:absolute;border-radius:50%;filter:blur(130px); }
+    .o1 { width:900px;height:900px;background:radial-gradient(circle,#1a3a8f,transparent 65%);top:-350px;left:-200px;opacity:.14; }
+    .o2 { width:700px;height:700px;background:radial-gradient(circle,#4c2b8f,transparent 65%);bottom:-200px;right:-200px;opacity:.11; }
+    .o3 { width:500px;height:500px;background:radial-gradient(circle,#0e5f8f,transparent 65%);top:40%;left:40%;transform:translate(-50%,-50%);opacity:.08; }
+
+    /* ── PAGE ─── */
+    .page { position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:56px 28px 120px; }
+    @media(max-width:600px){ .page { padding:32px 16px 80px; } }
+
+    /* ── HEADER ─── */
+    .inv-header {
+      display:flex;align-items:flex-start;justify-content:space-between;
+      margin-bottom:56px;gap:20px;flex-wrap:wrap;
+    }
+    @media(max-width:600px){ .inv-header { margin-bottom:36px; } }
+
+    .hdr-left { display:flex;flex-direction:column;gap:16px; }
+    .logo-row { display:flex;align-items:center;gap:11px; }
+    .logo-gem {
+      width:40px;height:40px;border-radius:10px;
+      background:linear-gradient(145deg,#4f8ef7,#7c6af7);
+      display:flex;align-items:center;justify-content:center;
+      font-size:17px;font-weight:800;color:#fff;
+      box-shadow:0 0 24px rgba(124,106,247,.4);
+    }
+    .logo-name { font-size:20px;font-weight:700;letter-spacing:-.3px; }
+    .logo-badge {
+      display:inline-flex;align-items:center;gap:6px;
+      background:rgba(255,255,255,.04);border:1px solid var(--border);
+      border-radius:100px;padding:5px 13px;font-size:12px;color:var(--text-3);
+    }
+    .live-dot { width:7px;height:7px;border-radius:50%;background:var(--success);
+      box-shadow:0 0 8px var(--success);animation:blink 2s ease-in-out infinite; }
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+    .hdr-titles { }
+    .inv-eyebrow { font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:10px; }
+    .inv-h1 { font-size:clamp(28px,4vw,42px);font-weight:800;letter-spacing:-1.2px;line-height:1.1;margin-bottom:12px; }
+    .inv-h1 em {
+      font-style:normal;
+      background:linear-gradient(120deg,#60a5fa,#a78bfa);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    .inv-sub { font-size:16px;color:var(--text-2);line-height:1.65;max-width:620px; }
+    @media(max-width:600px){ .inv-sub { font-size:14px; } }
+
+    .hdr-right { display:flex;flex-direction:column;align-items:flex-end;gap:12px; }
+    .last-updated { font-size:12px;color:var(--text-3); }
+    .btn-refresh {
+      display:inline-flex;align-items:center;gap:7px;
+      background:rgba(255,255,255,.05);border:1px solid var(--border);
+      border-radius:var(--r-sm);padding:9px 16px;font-family:inherit;
+      font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer;
+      transition:all .18s;
+    }
+    .btn-refresh:hover { background:rgba(255,255,255,.08);border-color:var(--border-2);color:var(--text-1); }
+
+    /* ── SIGNAL BAR (top KPIs) ─── */
+    .signal-bar {
+      display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;
+    }
+    @media(max-width:900px){ .signal-bar { grid-template-columns:repeat(2,1fr); } }
+    @media(max-width:480px){ .signal-bar { grid-template-columns:1fr 1fr;gap:10px; } }
+
+    .sig-card {
+      background:var(--bg-card);border:1px solid var(--border);
+      border-radius:var(--r-lg);padding:24px 22px;
+      box-shadow:var(--shadow);position:relative;overflow:hidden;
+    }
+    .sig-card::before {
+      content:'';position:absolute;top:0;left:0;right:0;height:2px;
+      background:linear-gradient(90deg,var(--c1,#4f8ef7),var(--c2,#7c6af7));
+      opacity:.6;
+    }
+    .sig-card.gold { --c1:#fbbf24; --c2:#f59e0b; }
+    .sig-card.green { --c1:#34d399; --c2:#10b981; }
+    .sig-card.purple { --c1:#7c6af7; --c2:#a78bfa; }
+
+    .sc-ico { font-size:22px;margin-bottom:12px; }
+    .sc-num {
+      font-size:40px;font-weight:800;letter-spacing:-2px;
+      line-height:1;margin-bottom:6px;
+    }
+    .sc-num.grad {
+      background:linear-gradient(120deg,#60a5fa,#a78bfa);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    .sc-num.grad-gold { background:linear-gradient(120deg,#fbbf24,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+    .sc-num.grad-green { background:linear-gradient(120deg,#34d399,#10b981);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+    .sc-lbl { font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:4px; }
+    .sc-sub { font-size:12px;color:var(--text-3);line-height:1.4; }
+    .sc-chip {
+      display:inline-flex;align-items:center;gap:4px;margin-top:10px;
+      border-radius:100px;padding:3px 9px;font-size:11px;font-weight:600;
+    }
+    .chip-green { background:rgba(52,211,153,.1);color:var(--success); }
+    .chip-gold  { background:rgba(251,191,36,.1);color:var(--gold); }
+    .chip-blue  { background:rgba(79,142,247,.1);color:var(--accent); }
+
+    /* ── SECTION TITLES ─── */
+    .sec-hd { margin-bottom:20px; }
+    .sec-kicker { font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:6px; }
+    .sec-title { font-size:20px;font-weight:800;letter-spacing:-.4px; }
+    .sec-sub { font-size:14px;color:var(--text-3);margin-top:4px; }
+
+    /* ── DIVIDER ─── */
+    .inv-divider { border:none;border-top:1px solid var(--border);margin:44px 0; }
+
+    /* ── CHARTS GRID ─── */
+    .charts-2 { display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px; }
+    .charts-3 { display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px; }
+    @media(max-width:900px){ .charts-2,.charts-3 { grid-template-columns:1fr; } }
+
+    .chart-card {
+      background:var(--bg-card);border:1px solid var(--border);
+      border-radius:var(--r-lg);padding:24px;box-shadow:var(--shadow);
+    }
+    .chart-card.wide { grid-column:span 2; }
+    @media(max-width:900px){ .chart-card.wide { grid-column:span 1; } }
+    .cc-title { font-size:15px;font-weight:700;margin-bottom:4px; }
+    .cc-sub   { font-size:12px;color:var(--text-3);margin-bottom:20px;line-height:1.4; }
+    .ch-wrap  { position:relative;height:220px; }
+    .ch-wrap.tall { height:280px; }
+
+    /* ── PAIN SUMMARY ─── */
+    .pain-summary { display:flex;flex-direction:column;gap:10px; }
+    .ps-row { display:flex;align-items:center;gap:12px; }
+    .ps-label { font-size:13px;color:var(--text-2);width:130px;flex-shrink:0; }
+    .ps-track { flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:100px;overflow:hidden; }
+    .ps-fill  { height:100%;border-radius:100px;transition:width .8s var(--ease); }
+    .ps-val   { font-size:13px;font-weight:700;width:28px;text-align:right;flex-shrink:0; }
+    .f0{background:rgba(255,255,255,.1);color:var(--text-3);}
+    .f1{background:#22c55e;color:#22c55e;}
+    .f2{background:#84cc16;color:#84cc16;}
+    .f3{background:#f59e0b;color:#f59e0b;}
+    .f4{background:#f97316;color:#f97316;}
+    .f5{background:#ef4444;color:#ef4444;}
+
+    /* ── MOMENTUM ─── */
+    .momentum-card {
+      background:var(--bg-card);border:1px solid var(--border);
+      border-radius:var(--r-lg);padding:24px;box-shadow:var(--shadow);
+      margin-bottom:16px;
+    }
+
+    /* ── NOTABLE QUOTES ─── */
+    .quotes-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:14px; }
+    @media(max-width:700px){ .quotes-grid { grid-template-columns:1fr; } }
+    .quote-card {
+      background:var(--bg-card);border:1px solid var(--border);
+      border-radius:var(--r-lg);padding:24px;box-shadow:var(--shadow);
+      display:flex;flex-direction:column;gap:14px;
+      transition:border-color .2s;
+    }
+    .quote-card:hover { border-color:var(--border-2); }
+    .quote-card.starred { border-color:rgba(251,191,36,.3); }
+    .quote-star { font-size:14px; }
+    .quote-text {
+      font-size:15px;color:var(--text-1);line-height:1.7;
+      font-style:italic;flex:1;
+      position:relative;padding-left:18px;
+    }
+    .quote-text::before {
+      content:'"';position:absolute;left:0;top:-4px;
+      font-size:28px;font-style:normal;color:var(--accent);opacity:.5;line-height:1;
+    }
+    .quote-attr { display:flex;align-items:center;gap:10px; }
+    .quote-avatar {
+      width:36px;height:36px;border-radius:50%;
+      background:linear-gradient(135deg,rgba(79,142,247,.3),rgba(124,106,247,.3));
+      border:1px solid rgba(124,106,247,.3);
+      display:flex;align-items:center;justify-content:center;
+      font-size:14px;font-weight:700;color:var(--accent);flex-shrink:0;
+    }
+    .quote-name { font-size:13px;font-weight:600;color:var(--text-1); }
+    .quote-detail { font-size:12px;color:var(--text-3); }
+    .quote-tier {
+      display:inline-flex;align-items:center;gap:5px;
+      border-radius:100px;padding:2px 9px;font-size:10px;font-weight:700;
+    }
+    .qt-gold   { background:rgba(251,191,36,.1);color:var(--gold);border:1px solid rgba(251,191,36,.2); }
+    .qt-purple { background:rgba(124,106,247,.1);color:#a78bfa;border:1px solid rgba(124,106,247,.2); }
+    .qt-blue   { background:rgba(79,142,247,.1);color:var(--accent);border:1px solid rgba(79,142,247,.2); }
+    .no-quotes { text-align:center;padding:48px 24px;color:var(--text-3); }
+    .no-q-ico  { font-size:32px;margin-bottom:12px;opacity:.4; }
+    .no-q-txt  { font-size:14px;line-height:1.6; }
+
+    /* ── MARKET CONTEXT ─── */
+    .market-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px; }
+    @media(max-width:700px){ .market-grid { grid-template-columns:1fr; } }
+    .market-card {
+      background:linear-gradient(135deg,rgba(79,142,247,.06),rgba(124,106,247,.04));
+      border:1px solid rgba(124,106,247,.18);border-radius:var(--r-lg);
+      padding:24px;box-shadow:var(--shadow);text-align:center;
+    }
+    .mkt-num { font-size:32px;font-weight:800;letter-spacing:-1px;margin-bottom:6px; }
+    .mkt-num span { background:linear-gradient(120deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+    .mkt-lbl { font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:6px; }
+    .mkt-src  { font-size:11px;color:var(--text-3);line-height:1.4; }
+
+    /* ── FOOTER ─── */
+    .inv-footer {
+      text-align:center;margin-top:64px;
+      font-size:12px;color:var(--text-3);line-height:2;
+    }
+    .inv-footer strong { color:var(--text-2); }
+
+    /* ── LOADING ─── */
+    .loading { display:flex;align-items:center;justify-content:center;gap:10px;padding:60px;color:var(--text-3);font-size:14px; }
+    .spinner { width:18px;height:18px;border:2px solid rgba(255,255,255,.1);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* ── TOAST ─── */
+    .toast {
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);
+      background:rgba(20,20,28,.96);backdrop-filter:blur(20px);
+      border:1px solid var(--border);border-radius:var(--r-md);
+      padding:12px 20px;font-size:13px;color:var(--text-2);
+      z-index:9999;transition:transform .35s var(--ease);
+      display:flex;align-items:center;gap:8px;box-shadow:0 8px 32px rgba(0,0,0,.5);
+    }
+    .toast.show { transform:translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body class="gate-locked">
+
+<!-- ── PASSWORD GATE OVERLAY ─────────────────── -->
+<div id="gate-overlay">
+  <div class="gate-bg-orb gate-orb1"></div>
+  <div class="gate-bg-orb gate-orb2"></div>
+  <div class="gate-card">
+    <div class="gate-gem">S</div>
+    <div class="gate-title">Investor Dashboard</div>
+    <div class="gate-sub">Saara Practice Intelligence Survey<br>Confidential · Authorized access only.</div>
+    <label class="gate-label">Investor Password</label>
+    <form onsubmit="event.preventDefault();gateSubmit()">
+    <input type="text" name="username" value="saara-investor" autocomplete="username" style="display:none" aria-hidden="true" />
+    <div class="gate-input-wrap">
+      <input class="gate-input" id="gate-input" type="password"
+             placeholder="••••••••••••"
+             onkeydown="if(event.key==='Enter')gateSubmit()"
+             autocomplete="current-password" />
+      <button class="gate-eye" type="button" onclick="gateToggleEye()" id="gate-eye-btn" title="Show/hide">👁</button>
+    </div>
+    </form>
+    <div class="gate-error" id="gate-error"></div>
+    <button class="gate-btn" onclick="gateSubmit()">View Investor Dashboard →</button>
+    <div class="gate-footer">This dashboard is confidential.<br>Provided by Saara — AI Healthcare OS.</div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const GATE_KEY  = 'saara_investor_auth';
+    const GATE_PASS = 'saarainvestor2026!1';
+    const TTL_MS    = 24 * 60 * 60 * 1000; // 24 hours
+
+    function gateUnlock(animate) {
+      document.body.classList.remove('gate-locked');
+      const ov = document.getElementById('gate-overlay');
+      if (animate) {
+        ov.classList.add('unlocked');
+        setTimeout(() => ov.remove(), 600);
+      } else {
+        ov.remove();
+      }
+    }
+
+    // Check stored session
+    const stored = localStorage.getItem(GATE_KEY);
+    if (stored) {
+      try {
+        const { ts } = JSON.parse(stored);
+        if (Date.now() - ts < TTL_MS) { gateUnlock(false); }
+        else { localStorage.removeItem(GATE_KEY); }
+      } catch(e) { localStorage.removeItem(GATE_KEY); }
+    }
+
+    window.gateSubmit = function() {
+      const val = document.getElementById('gate-input').value;
+      if (val === GATE_PASS) {
+        localStorage.setItem(GATE_KEY, JSON.stringify({ ts: Date.now() }));
+        gateUnlock(true);
+      } else {
+        const inp = document.getElementById('gate-input');
+        const err = document.getElementById('gate-error');
+        err.textContent = 'Incorrect password. Please try again.';
+        inp.classList.add('shake');
+        inp.value = '';
+        setTimeout(() => inp.classList.remove('shake'), 500);
+      }
+    };
+
+    window.gateToggleEye = function() {
+      const inp = document.getElementById('gate-input');
+      const btn = document.getElementById('gate-eye-btn');
+      if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+      else { inp.type = 'password'; btn.textContent = '👁'; }
+    };
+
+    setTimeout(() => {
+      const inp = document.getElementById('gate-input');
+      if (inp) inp.focus();
+    }, 100);
+  })();
+</script>
+
+<div class="bg-fixed">
+  <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+</div>
+
+<div class="page">
+
+  <!-- ── HEADER ───────────────────────────────── -->
+  <div class="inv-header">
+    <div class="hdr-left">
+      <div class="logo-row">
+        <div class="logo-gem">S</div>
+        <span class="logo-name">saara</span>
+        <span class="logo-badge"><div class="live-dot"></div> Live Data</span>
+      </div>
+      <div class="hdr-titles">
+        <p class="inv-eyebrow">Investor Intelligence Dashboard</p>
+        <h1 class="inv-h1">Real doctors.<br><em>Real demand signals.</em></h1>
+        <p class="inv-sub">
+          Live aggregation of survey responses from practicing physicians and clinic operators.
+          Every data point represents a real person who raised their hand for Saara.
+        </p>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <span class="last-updated" id="last-updated">Last updated: —</span>
+      <button class="btn-refresh" onclick="loadData()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <!-- ── SIGNAL BAR ────────────────────────────── -->
+  <div class="signal-bar" id="signal-bar">
+    <div class="loading" style="grid-column:span 4"><div class="spinner"></div> Loading…</div>
+  </div>
+
+  <hr class="inv-divider" />
+
+  <!-- ── PAIN LANDSCAPE ──────────────────────── -->
+  <div class="sec-hd">
+    <p class="sec-kicker">Market Problem</p>
+    <h2 class="sec-title">The pain is real — and it's expensive.</h2>
+    <p class="sec-sub">Average pain scores rated by respondents across six operational categories.</p>
+  </div>
+
+  <div class="charts-2" style="margin-bottom:28px;">
+    <div class="chart-card">
+      <div class="cc-title">Pain Score by Category</div>
+      <div class="cc-sub">Average rating (1 = No issue · 5 = Critical). Higher = bigger opportunity for Saara.</div>
+      <div class="ch-wrap">
+        <canvas id="ch-pain"></canvas>
+      </div>
+    </div>
+    <div class="chart-card" style="display:flex;flex-direction:column;gap:0;">
+      <div class="cc-title">Pain Breakdown</div>
+      <div class="cc-sub">Detailed average scores with severity colour coding.</div>
+      <div class="pain-summary" id="pain-summary" style="margin-top:8px;flex:1;justify-content:center;display:flex;flex-direction:column;gap:12px;">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="inv-divider" />
+
+  <!-- ── DEMAND SIGNALS ─────────────────────── -->
+  <div class="sec-hd">
+    <p class="sec-kicker">Demand Signals</p>
+    <h2 class="sec-title">Who's raising their hand.</h2>
+    <p class="sec-sub">Commitment tiers, demo interest, and adoption readiness from real practitioners.</p>
+  </div>
+
+  <div class="charts-3" style="margin-bottom:16px;">
+    <div class="chart-card">
+      <div class="cc-title">Commitment Tiers</div>
+      <div class="cc-sub">How respondents self-selected their interest level.</div>
+      <div class="ch-wrap"><canvas id="ch-tiers"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="cc-title">Demo Interest</div>
+      <div class="cc-sub">Urgency of interest in seeing Saara in action.</div>
+      <div class="ch-wrap"><canvas id="ch-demo"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="cc-title">Adoption Timeline</div>
+      <div class="cc-sub">How quickly respondents could move on a solution.</div>
+      <div class="ch-wrap"><canvas id="ch-timeline"></canvas></div>
+    </div>
+  </div>
+
+  <hr class="inv-divider" />
+
+  <!-- ── FINANCIAL CONTEXT ──────────────────── -->
+  <div class="sec-hd">
+    <p class="sec-kicker">Revenue Opportunity</p>
+    <h2 class="sec-title">The dollars behind the problem.</h2>
+    <p class="sec-sub">Self-reported revenue ranges and estimated monthly losses from inefficiencies.</p>
+  </div>
+
+  <div class="charts-2" style="margin-bottom:16px;">
+    <div class="chart-card">
+      <div class="cc-title">Practice Revenue Range</div>
+      <div class="cc-sub">Annual revenue distribution of respondents.</div>
+      <div class="ch-wrap"><canvas id="ch-revenue"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="cc-title">Estimated Monthly Revenue Lost</div>
+      <div class="cc-sub">Self-reported losses to billing errors, no-shows, and inefficiencies.</div>
+      <div class="ch-wrap"><canvas id="ch-rev-lost"></canvas></div>
+    </div>
+  </div>
+
+  <hr class="inv-divider" />
+
+  <!-- ── MARKET CONTEXT (static) ───────────── -->
+  <div class="sec-hd">
+    <p class="sec-kicker">Market Context</p>
+    <h2 class="sec-title">The size of the problem.</h2>
+    <p class="sec-sub">Industry data framing the total addressable opportunity Saara is entering.</p>
+  </div>
+
+  <div class="market-grid">
+    <div class="market-card">
+      <div class="mkt-num"><span>$125K</span></div>
+      <div class="mkt-lbl">Revenue lost per physician/year</div>
+      <div class="mkt-src">To billing inefficiencies, claim denials, and coding errors — MGMA 2023</div>
+    </div>
+    <div class="market-card">
+      <div class="mkt-num"><span>16 hrs</span></div>
+      <div class="mkt-lbl">Admin hours lost per physician/week</div>
+      <div class="mkt-src">Time spent on documentation, EHR, prior auths — AMA Physician Survey 2023</div>
+    </div>
+    <div class="market-card">
+      <div class="mkt-num"><span>$8.3B</span></div>
+      <div class="mkt-lbl">Healthcare AI market by 2026</div>
+      <div class="mkt-src">Focused on administrative automation and clinical workflow — Grand View Research</div>
+    </div>
+    <div class="market-card">
+      <div class="mkt-num"><span>500K+</span></div>
+      <div class="mkt-lbl">Private practice physicians in the US</div>
+      <div class="mkt-src">Independent and small-group practices — the primary Saara target segment</div>
+    </div>
+    <div class="market-card">
+      <div class="mkt-num"><span>34%</span></div>
+      <div class="mkt-lbl">Denied prior auths eventually approved</div>
+      <div class="mkt-src">After costly re-submissions — AMA Prior Authorization Survey 2023</div>
+    </div>
+    <div class="market-card">
+      <div class="mkt-num"><span>$4.6T</span></div>
+      <div class="mkt-lbl">Total US healthcare spend (2023)</div>
+      <div class="mkt-src">With 30%+ estimated waste from administrative inefficiency — CMS.gov</div>
+    </div>
+  </div>
+
+  <hr class="inv-divider" />
+
+  <!-- ── RESPONDENT PROFILE ─────────────────── -->
+  <div class="sec-hd">
+    <p class="sec-kicker">Who's Responding</p>
+    <h2 class="sec-title">The profile of demand.</h2>
+    <p class="sec-sub">Specialty mix, practice size, and buying authority of respondents.</p>
+  </div>
+
+  <div class="charts-2" style="margin-bottom:16px;">
+    <div class="chart-card wide">
+      <div class="cc-title">Responses by Specialty</div>
+      <div class="cc-sub">Breadth of specialties engaging with Saara.</div>
+      <div class="ch-wrap tall"><canvas id="ch-specialty"></canvas></div>
+    </div>
+  </div>
+
+  <div class="charts-2">
+    <div class="chart-card">
+      <div class="cc-title">Practice Size</div>
+      <div class="cc-sub">Number of providers per practice.</div>
+      <div class="ch-wrap"><canvas id="ch-size"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="cc-title">Budget Authority</div>
+      <div class="cc-sub">Who makes the purchasing decision.</div>
+      <div class="ch-wrap"><canvas id="ch-budget"></canvas></div>
+    </div>
+  </div>
+
+  <hr class="inv-divider" />
+
+  <!-- ── NOTABLE RESPONSES ──────────────────── -->
+  <div class="sec-hd">
+    <p class="sec-kicker">Highlight Reel</p>
+    <h2 class="sec-title">Notable responses.</h2>
+    <p class="sec-sub" id="quotes-sub">Starred responses curated by the Saara team — real voices, real pain, real intent.</p>
+  </div>
+
+  <div id="quotes-container">
+    <div class="loading"><div class="spinner"></div> Loading responses…</div>
+  </div>
+
+  <!-- ── FOOTER ─────────────────────────────── -->
+  <div class="inv-footer">
+    <p><strong>Saara Intelligence Corp.</strong> &nbsp;·&nbsp; Investor Dashboard &nbsp;·&nbsp; Confidential</p>
+    <p>Data updates in real time as survey responses are received.</p>
+    <p style="margin-top:8px;">
+      <a href="index.html" target="_blank" style="color:var(--accent);text-decoration:none;">View Survey →</a>
+      &nbsp;&nbsp;
+      <a href="admin.html" target="_blank" style="color:var(--text-3);text-decoration:none;">Admin →</a>
+    </p>
+  </div>
+
+</div><!-- /page -->
+
+<div class="toast" id="toast"><span id="t-ico">✓</span><span id="t-msg">Done</span></div>
+
+<script>
+  Chart.defaults.color = '#5c5c6b';
+  Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+
+  let allData = [];
+  let charts = {};
+
+  const PALETTE = ['#4f8ef7','#7c6af7','#34d399','#fbbf24','#f87171','#a78bfa','#38bdf8','#fb7185','#4ade80','#facc15'];
+
+  // ── Load ──────────────────────────────────────
+  async function loadData() {
+    try {
+      let page = 1, all = [];
+      while (true) {
+        const r = await fetch(`tables/saara_responses?page=${page}&limit=100`);
+        const d = await r.json();
+        all = all.concat(d.data || []);
+        if (all.length >= d.total || !d.data?.length) break;
+        page++;
+      }
+      allData = all.sort((a,b) => (b.submitted_at||b.created_at) - (a.submitted_at||a.created_at));
+      document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+      renderSignalBar();
+      renderCharts();
+      renderPainSummary();
+      renderQuotes();
+    } catch(e) {
+      console.error(e);
+      showToast('Failed to load data. Retrying…', true);
+    }
+  }
+
+  // ── Signal Bar ────────────────────────────────
+  function renderSignalBar() {
+    const n = allData.length;
+    const committed   = allData.filter(r => r.soft_commitment).length;
+    const founding    = allData.filter(r => r.commitment_tier?.includes('Founding')).length;
+    const highIntent  = allData.filter(r => r.demo_interest?.includes('ASAP') || r.commitment_tier?.includes('Founding') || r.commitment_tier?.includes('Early')).length;
+    const commitPct   = n ? Math.round(committed/n*100) : 0;
+    const intentPct   = n ? Math.round(highIntent/n*100) : 0;
+
+    document.getElementById('signal-bar').innerHTML = `
+      <div class="sig-card">
+        <div class="sc-ico">🏥</div>
+        <div class="sc-num grad">${n}</div>
+        <div class="sc-lbl">Physicians Surveyed</div>
+        <div class="sc-sub">Practicing doctors and practice owners</div>
+        <span class="sc-chip chip-blue">↗ Live count</span>
+      </div>
+      <div class="sig-card green">
+        <div class="sc-ico">✍️</div>
+        <div class="sc-num grad-green">${committed}</div>
+        <div class="sc-lbl">Soft Commitments Signed</div>
+        <div class="sc-sub">${commitPct}% of all respondents expressed formal interest</div>
+        <span class="sc-chip chip-green">Strong demand signal</span>
+      </div>
+      <div class="sig-card gold">
+        <div class="sc-ico">⭐</div>
+        <div class="sc-num grad-gold">${founding}</div>
+        <div class="sc-lbl">Founding Partners</div>
+        <div class="sc-sub">Selected beta co-builder tier — highest intent</div>
+        <span class="sc-chip chip-gold">Design partners</span>
+      </div>
+      <div class="sig-card purple">
+        <div class="sc-ico">🚀</div>
+        <div class="sc-num" style="background:linear-gradient(120deg,#7c6af7,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:40px;font-weight:800;letter-spacing:-2px;">${highIntent}</div>
+        <div class="sc-lbl">High-Intent Leads</div>
+        <div class="sc-sub">${intentPct}% want a demo ASAP or early access</div>
+        <span class="sc-chip" style="background:rgba(124,106,247,.1);color:#a78bfa;">Active pipeline</span>
+      </div>
+    `;
+  }
+
+  // ── Charts ────────────────────────────────────
+  function renderCharts() {
+    if (!allData.length) return;
+
+    // Pain scores
+    const painFields = [
+      {key:'pain_billing',label:'Billing'},
+      {key:'pain_compliance',label:'Compliance'},
+      {key:'pain_scheduling',label:'Scheduling'},
+      {key:'pain_clinical_notes',label:'Documentation'},
+      {key:'pain_staff',label:'Staff'},
+      {key:'pain_patient_comms',label:'Patient Comms'},
+    ];
+    const painAvgs = painFields.map(f => {
+      const vals = allData.map(r=>r[f.key]).filter(v=>v>0);
+      return vals.length ? +(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : 0;
+    });
+    mkBar('ch-pain', painFields.map(f=>f.label), painAvgs,
+      painAvgs.map(v => v>=4?'#ef4444':v>=3?'#f97316':v>=2?'#f59e0b':'#34d399'), {yMax:5});
+
+    // Pain summary bars
+    renderPainSummary(painFields, painAvgs);
+
+    // Tiers
+    const tierMap = {'Founding Partner':0,'Early Access':0,'Stay Informed':0,'No selection':0};
+    allData.forEach(r=>{
+      const t = r.commitment_tier||'';
+      if(t.includes('Founding')) tierMap['Founding Partner']++;
+      else if(t.includes('Early')) tierMap['Early Access']++;
+      else if(t.includes('Informed')||t.includes('Demo')) tierMap['Stay Informed']++;
+      else tierMap['No selection']++;
+    });
+    const tierKeys = Object.keys(tierMap).filter(k=>tierMap[k]>0);
+    mkDoughnut('ch-tiers', tierKeys, tierKeys.map(k=>tierMap[k]), ['#fbbf24','#7c6af7','#4f8ef7','#5c5c6b']);
+
+    // Demo interest
+    const demoMap = {};
+    allData.forEach(r=>{
+      if(!r.demo_interest) return;
+      const k = r.demo_interest.includes('ASAP')?'🚀 Schedule ASAP'
+               :r.demo_interest.includes('first')?'📬 Info First'
+               :r.demo_interest.includes('loop')?'🤔 Keep Updated'
+               :'✋ Not Now';
+      demoMap[k]=(demoMap[k]||0)+1;
+    });
+    const dk = Object.keys(demoMap); const dv = dk.map(k=>demoMap[k]);
+    mkDoughnut('ch-demo', dk, dv, ['#4f8ef7','#7c6af7','#f59e0b','#5c5c6b']);
+
+    // Timeline
+    const tlMap = {};
+    allData.forEach(r=>{
+      if(!r.shopping_timeline) return;
+      const k = r.shopping_timeline.replace('Immediately — I\'m actively looking now','Immediately').replace('Not sure yet','Not sure');
+      tlMap[k]=(tlMap[k]||0)+1;
+    });
+    const tlSorted = Object.entries(tlMap).sort((a,b)=>b[1]-a[1]);
+    mkBar('ch-timeline', tlSorted.map(e=>e[0]), tlSorted.map(e=>e[1]), '#4f8ef7', {horizontal:true});
+
+    // Revenue
+    const revMap = {};
+    allData.forEach(r=>{ if(r.annual_revenue_est) revMap[r.annual_revenue_est]=(revMap[r.annual_revenue_est]||0)+1; });
+    const revOrder = ['Under $500K','$500K – $1M','$1M – $3M','$3M – $10M','$10M+','Prefer not to say'];
+    const revKeys = revOrder.filter(k=>revMap[k]);
+    mkBar('ch-revenue', revKeys, revKeys.map(k=>revMap[k]), '#34d399');
+
+    // Revenue lost
+    const rlMap = {};
+    allData.forEach(r=>{ if(r.monthly_revenue_lost) rlMap[r.monthly_revenue_lost]=(rlMap[r.monthly_revenue_lost]||0)+1; });
+    const rlOrder = ['Less than $5K/mo','$5K–$15K/mo','$15K–$30K/mo','$30K–$50K/mo','$50K+/mo','Not sure'];
+    const rlKeys = rlOrder.filter(k=>rlMap[k]);
+    mkBar('ch-rev-lost', rlKeys, rlKeys.map(k=>rlMap[k]), '#f97316');
+
+    // Specialty
+    const spMap = {};
+    allData.forEach(r=>{ if(r.specialty) spMap[r.specialty]=(spMap[r.specialty]||0)+1; });
+    const spSorted = Object.entries(spMap).sort((a,b)=>b[1]-a[1]);
+    mkBar('ch-specialty', spSorted.map(e=>e[0]), spSorted.map(e=>e[1]), '#7c6af7');
+
+    // Practice size
+    const szMap = {};
+    allData.forEach(r=>{ if(r.practice_size) szMap[r.practice_size]=(szMap[r.practice_size]||0)+1; });
+    const szSorted = Object.entries(szMap).sort((a,b)=>b[1]-a[1]);
+    mkDoughnut('ch-size', szSorted.map(e=>e[0]), szSorted.map(e=>e[1]));
+
+    // Budget authority
+    const baMap = {};
+    allData.forEach(r=>{ if(r.budget_authority) {
+      const k = r.budget_authority.replace('I decide independently','Solo decision')
+                                   .replace('I decide with partner physicians','With partners')
+                                   .replace('Practice manager / administrator','Practice admin')
+                                   .replace('Hospital or health system leadership','Health system');
+      baMap[k]=(baMap[k]||0)+1;
+    }});
+    const baSorted = Object.entries(baMap).sort((a,b)=>b[1]-a[1]);
+    mkDoughnut('ch-budget', baSorted.map(e=>e[0]), baSorted.map(e=>e[1]), ['#4f8ef7','#7c6af7','#34d399','#fbbf24']);
+  }
+
+  // ── Pain Summary Bars ─────────────────────────
+  function renderPainSummary(fields, avgs) {
+    if (!fields || !avgs) {
+      const painFields = [
+        {key:'pain_billing',label:'💰 Billing'},
+        {key:'pain_compliance',label:'📑 Compliance'},
+        {key:'pain_scheduling',label:'📅 Scheduling'},
+        {key:'pain_clinical_notes',label:'📋 Documentation'},
+        {key:'pain_staff',label:'👥 Staff'},
+        {key:'pain_patient_comms',label:'💬 Patient Comms'},
+      ];
+      const painAvgs = painFields.map(f => {
+        const vals = allData.map(r=>r[f.key]).filter(v=>v>0);
+        return vals.length ? +(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : 0;
+      });
+      fields = painFields; avgs = painAvgs;
+    }
+    const labels = ['💰 Billing','📑 Compliance','📅 Scheduling','📋 Documentation','👥 Staff','💬 Patient Comms'];
+    const html = avgs.map((v,i) => {
+      const cls = v>=4.5?'f5':v>=3.5?'f4':v>=2.5?'f3':v>=1.5?'f2':v>0?'f1':'f0';
+      const w = (v/5*100).toFixed(0);
+      return `<div class="ps-row">
+        <div class="ps-label">${labels[i]}</div>
+        <div class="ps-track"><div class="ps-fill ${cls}" style="width:${w}%"></div></div>
+        <div class="ps-val ${cls}">${v||'—'}</div>
+      </div>`;
+    }).join('');
+    document.getElementById('pain-summary').innerHTML = html || '<div style="color:var(--text-3);font-size:13px;text-align:center;padding:20px">No pain data yet</div>';
+  }
+
+  // ── Notable Quotes ────────────────────────────
+  function renderQuotes() {
+    // Show starred responses + any with substantial comments
+    const starred   = allData.filter(r => r.is_starred);
+    const withNotes = allData.filter(r => !r.is_starred && r.additional_comments && r.additional_comments.trim().length > 40);
+    const featured  = [...starred, ...withNotes].slice(0, 6);
+
+    if (!featured.length) {
+      document.getElementById('quotes-container').innerHTML = `
+        <div class="no-quotes">
+          <div class="no-q-ico">💬</div>
+          <div class="no-q-txt">No highlighted responses yet.<br>Star responses in the <a href="admin.html" style="color:var(--accent);text-decoration:none;">admin dashboard</a> to feature them here.</div>
+        </div>`;
+      return;
+    }
+
+    document.getElementById('quotes-sub').textContent =
+      `${featured.length} highlighted response${featured.length!==1?'s':''} — real voices from practicing physicians.`;
+
+    const html = featured.map(r => {
+      const quote = r.admin_note || r.additional_comments || '';
+      const tier  = r.commitment_tier || '';
+      const tierChip = tier.includes('Founding')
+        ? `<span class="quote-tier qt-gold">⭐ Founding Partner</span>`
+        : tier.includes('Early')
+        ? `<span class="quote-tier qt-purple">🚀 Early Access</span>`
+        : tier
+        ? `<span class="quote-tier qt-blue">📬 Interested</span>`
+        : '';
+      const initials = (r.doctor_name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+      const isStarred = r.is_starred;
+      return `<div class="quote-card ${isStarred?'starred':''}">
+        ${isStarred?'<div class="quote-star">⭐ Featured</div>':''}
+        <div class="quote-text">${esc(quote.slice(0,280))}${quote.length>280?'…':''}</div>
+        <div class="quote-attr">
+          <div class="quote-avatar">${initials}</div>
+          <div>
+            <div class="quote-name">${esc(r.doctor_name||'Anonymous')}</div>
+            <div class="quote-detail">${esc([r.specialty, r.clinic_name].filter(Boolean).join(' · '))}</div>
+          </div>
+          ${tierChip}
+        </div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('quotes-container').innerHTML = `<div class="quotes-grid">${html}</div>`;
+  }
+
+  // ── Chart helpers ─────────────────────────────
+  function mkBar(id, labels, data, colors, opts={}) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    if (charts[id]) charts[id].destroy();
+    const cols = Array.isArray(colors) ? colors : labels.map(()=>colors||'#4f8ef7');
+    charts[id] = new Chart(canvas, {
+      type:'bar',
+      data:{ labels, datasets:[{ data, backgroundColor:cols.map(c=>c+'cc'), borderColor:cols, borderWidth:1, borderRadius:5 }] },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        indexAxis: opts.horizontal?'y':'x',
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>` ${ctx.raw}`}} },
+        scales:{
+          x:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#5c5c6b',font:{size:10}}, max:opts.xMax },
+          y:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#5c5c6b',font:{size:10}}, max:opts.yMax, beginAtZero:true }
+        }
+      }
+    });
+  }
+
+  function mkDoughnut(id, labels, data, colors) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    if (charts[id]) charts[id].destroy();
+    const pal = colors || PALETTE;
+    charts[id] = new Chart(canvas, {
+      type:'doughnut',
+      data:{ labels, datasets:[{ data, backgroundColor:pal.slice(0,labels.length), borderWidth:0, hoverOffset:6 }] },
+      options:{
+        responsive:true, maintainAspectRatio:false, cutout:'60%',
+        plugins:{
+          legend:{position:'right', labels:{color:'#9b9ba8',font:{size:11},padding:10,boxWidth:8,boxHeight:8}},
+          tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw}`}}
+        }
+      }
+    });
+  }
+
+  // ── Helpers ───────────────────────────────────
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function showToast(msg,err=false){
+    const t=document.getElementById('toast');
+    document.getElementById('t-msg').textContent=msg;
+    document.getElementById('t-ico').textContent=err?'✕':'✓';
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),3500);
+  }
+
+  // ── Auto-refresh every 60s ────────────────────
+  loadData();
+  setInterval(loadData, 60000);
+</script>
+</body>
+</html>

@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Saara — Practice Intelligence Survey</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════════
+       TOKENS
+    ═══════════════════════════════════════════ */
+    :root {
+      --bg:             #000;
+      --bg-card:        #0c0c0e;
+      --bg-input:       #111114;
+      --bg-hover:       #18181c;
+      --border:         rgba(255,255,255,0.07);
+      --border-focus:   rgba(255,255,255,0.20);
+      --accent:         #4f8ef7;
+      --accent-2:       #7c6af7;
+      --accent-soft:    rgba(79,142,247,0.10);
+      --accent-glow:    rgba(79,142,247,0.28);
+      --success:        #34d399;
+      --warning:        #fbbf24;
+      --danger:         #f87171;
+      --text-1:         #f2f2f7;
+      --text-2:         #9b9ba8;
+      --text-3:         #5c5c6b;
+      --r-sm: 10px; --r-md: 16px; --r-lg: 22px; --r-xl: 32px;
+      --ease: cubic-bezier(0.4,0,0.2,1);
+      --shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 20px 60px rgba(0,0,0,0.55);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ═══════════════════════════════════════════
+       AMBIENT
+    ═══════════════════════════════════════════ */
+    .bg-canvas {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+    }
+    .orb {
+      position: absolute; border-radius: 50%; filter: blur(130px);
+    }
+    .orb-1 { width:900px;height:900px;background:radial-gradient(circle,#1a3a8f,transparent 65%);top:-300px;left:-300px;opacity:.16; }
+    .orb-2 { width:700px;height:700px;background:radial-gradient(circle,#4c2b8f,transparent 65%);bottom:-200px;right:-200px;opacity:.14; }
+    .orb-3 { width:500px;height:500px;background:radial-gradient(circle,#0e5f8f,transparent 65%);top:40%;left:45%;transform:translate(-50%,-50%);opacity:.10; }
+
+    /* ═══════════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════════ */
+    .wrap { position:relative;z-index:1;max-width:780px;margin:0 auto;padding:72px 24px 140px; }
+    .wrap.survey-active { padding-top: 32px; }
+    @media(max-width:600px){
+      .wrap { padding: 48px 16px 100px; }
+      .wrap.survey-active { padding-top: 20px; }
+    }
+
+    /* ═══════════════════════════════════════════
+       HERO
+    ═══════════════════════════════════════════ */
+    .hero {
+      text-align:center; margin-bottom:72px;
+      transition: opacity 0.35s var(--ease), max-height 0.45s var(--ease), margin 0.35s var(--ease);
+      max-height: 600px;
+      overflow: hidden;
+    }
+    .hero.collapsed {
+      opacity: 0;
+      max-height: 0;
+      margin-bottom: 0;
+      pointer-events: none;
+    }
+    @media(max-width:600px){
+      .hero { margin-bottom: 48px; }
+      .logo-unit { margin-bottom: 28px; }
+      .hero-sub { font-size: 15px; }
+    }
+
+    .logo-unit {
+      display:inline-flex;align-items:center;gap:11px;margin-bottom:44px;
+      text-decoration:none;
+    }
+    .logo-gem {
+      width:44px;height:44px;border-radius:12px;
+      background:linear-gradient(145deg,#4f8ef7,#7c6af7);
+      display:flex;align-items:center;justify-content:center;
+      font-size:19px;font-weight:800;color:#fff;letter-spacing:-1px;
+      box-shadow:0 0 32px rgba(124,106,247,.45);
+    }
+    .logo-name { font-size:21px;font-weight:700;letter-spacing:-.4px;color:var(--text-1); }
+
+    .eyebrow {
+      font-size:11px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;
+      color:var(--accent);margin-bottom:20px;
+    }
+    .hero-h1 {
+      font-size:clamp(38px,6.5vw,60px);font-weight:800;letter-spacing:-2px;
+      line-height:1.06;color:var(--text-1);margin-bottom:24px;
+    }
+    .hero-h1 em {
+      font-style:normal;
+      background:linear-gradient(120deg,#60a5fa 0%,#a78bfa 55%,#60a5fa 100%);
+      background-size:200%;
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+      animation:shimmer 5s linear infinite;
+    }
+    @keyframes shimmer { to { background-position:200% center; } }
+
+    .hero-sub {
+      font-size:17px;font-weight:400;line-height:1.7;color:var(--text-2);
+      max-width:560px;margin:0 auto 36px;
+    }
+    .hero-pill {
+      display:inline-flex;align-items:center;gap:9px;
+      background:rgba(255,255,255,0.04);border:1px solid var(--border);
+      border-radius:100px;padding:9px 18px;font-size:13px;color:var(--text-3);
+    }
+    .hero-pill strong { color:var(--text-2); }
+    .pulse { width:7px;height:7px;border-radius:50%;background:var(--success);
+      box-shadow:0 0 8px var(--success);animation:blink 2.2s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ═══════════════════════════════════════════
+       STICKY PROGRESS
+    ═══════════════════════════════════════════ */
+    #progress-bar-wrap {
+      position:sticky;top:16px;z-index:200;margin-bottom:52px;
+    }
+    @media(max-width:600px){
+      #progress-bar-wrap { top:10px; margin-bottom:28px; }
+    }
+    .progress-glass {
+      background:rgba(8,8,12,.82);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      border:1px solid var(--border);border-radius:var(--r-lg);
+      padding:14px 22px;display:flex;align-items:center;gap:16px;
+    }
+    @media(max-width:400px){
+      .progress-glass { padding: 12px 14px; gap: 10px; }
+      .prog-label { font-size: 11px; }
+    }
+    .prog-label { font-size:12px;color:var(--text-3);white-space:nowrap; }
+    .prog-label b { color:var(--text-2); }
+    .prog-track { flex:1;height:3px;background:rgba(255,255,255,0.07);border-radius:100px;overflow:hidden; }
+    .prog-fill {
+      height:100%;border-radius:100px;width:0%;
+      background:linear-gradient(90deg,#4f8ef7,#7c6af7);
+      box-shadow:0 0 12px rgba(124,106,247,.5);
+      transition:width .55s var(--ease);
+    }
+    .prog-pct { font-size:12px;font-weight:600;color:var(--text-2);min-width:34px;text-align:right; }
+
+    /* ═══════════════════════════════════════════
+       SECTIONS
+    ═══════════════════════════════════════════ */
+    .f-section { display:none; }
+    .f-section.active {
+      display:block;
+      animation:fadeUp .42s var(--ease) forwards;
+    }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:none} }
+
+    .section-hd { margin-bottom:36px; }
+    .section-kicker { font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:10px; }
+    .section-title { font-size:28px;font-weight:800;letter-spacing:-.7px;line-height:1.2;margin-bottom:10px; }
+    .section-body { font-size:15px;color:var(--text-2);line-height:1.65; }
+    @media(max-width:600px){
+      .section-hd { margin-bottom: 24px; }
+      .section-title { font-size: 22px; letter-spacing: -.4px; }
+      .section-body { font-size: 14px; }
+    }
+
+    /* ═══════════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════════ */
+    .card {
+      background:var(--bg-card);border:1px solid var(--border);
+      border-radius:var(--r-lg);padding:28px 28px;margin-bottom:14px;
+      box-shadow:var(--shadow);
+    }
+    @media(max-width:600px){
+      .card { padding: 20px 16px; border-radius: var(--r-md); }
+    }
+    .card-title { font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:6px; }
+    .card-sub { font-size:13px;color:var(--text-3);margin-bottom:16px;line-height:1.5; }
+
+    /* ═══════════════════════════════════════════
+       FORM INPUTS
+    ═══════════════════════════════════════════ */
+    .frow { display:grid;grid-template-columns:1fr 1fr;gap:16px; }
+    @media(max-width:560px){.frow{grid-template-columns:1fr;}}
+    .fgroup { margin-bottom:20px; }
+    .fgroup:last-child { margin-bottom:0; }
+
+    label.lbl {
+      display:block;font-size:12px;font-weight:600;letter-spacing:.3px;
+      text-transform:uppercase;color:var(--text-3);margin-bottom:8px;
+    }
+    .req { color:var(--accent);margin-left:3px; }
+
+    input[type=text], input[type=email], select, textarea {
+      width:100%;background:var(--bg-input);border:1px solid var(--border);
+      border-radius:var(--r-sm);padding:13px 15px;
+      font-family:inherit;font-size:15px;color:var(--text-1);outline:none;
+      transition:border-color .2s var(--ease),box-shadow .2s var(--ease),background .2s;
+      -webkit-appearance:none;appearance:none;
+    }
+    input::placeholder,textarea::placeholder { color:var(--text-3); }
+    input:focus,select:focus,textarea:focus {
+      border-color:var(--border-focus);background:#151519;
+      box-shadow:0 0 0 3px var(--accent-soft);
+    }
+    select {
+      cursor:pointer;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235c5c6b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat:no-repeat;background-position:right 13px center;padding-right:40px;
+    }
+    select option { background:#1c1c24; }
+    textarea { resize:none;line-height:1.6; }
+
+    .f-err { font-size:12px;color:var(--danger);margin-top:6px;display:none; }
+    .f-err.on { display:block; }
+    .invalid { border-color:rgba(248,113,113,.4)!important; }
+
+    /* ═══════════════════════════════════════════
+       CHOICE CARDS
+    ═══════════════════════════════════════════ */
+    .choices { display:grid;gap:9px; }
+    .choices.c2 { grid-template-columns:repeat(2,1fr); }
+    .choices.c3 { grid-template-columns:repeat(3,1fr); }
+    @media(max-width:560px){.choices.c2,.choices.c3{grid-template-columns:1fr;}}
+
+    .ci { position:relative;cursor:pointer;display:block; }
+    .ci input { position:absolute;opacity:0;width:0;height:0; }
+
+    .ci-face {
+      display:flex;align-items:flex-start;gap:12px;
+      background:var(--bg-input);border:1px solid var(--border);
+      border-radius:var(--r-sm);padding:13px 15px;
+      transition:all .18s var(--ease);
+    }
+    .ci-face:hover { background:var(--bg-hover);border-color:var(--border-focus); }
+
+    .ci-box {
+      width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border-focus);
+      flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;
+      transition:all .18s;
+    }
+    .ci input[type=radio] + .ci-face .ci-box { border-radius:50%; }
+
+    .ci-txt { flex:1; }
+    .ci-lbl { font-size:14px;font-weight:500;color:var(--text-1);line-height:1.3;margin-bottom:2px; }
+    .ci-sub { font-size:12px;color:var(--text-3);line-height:1.4; }
+
+    .ci input:checked + .ci-face { background:var(--accent-soft);border-color:var(--accent); }
+    .ci input:checked + .ci-face .ci-box { background:var(--accent);border-color:var(--accent); }
+    .ci input[type=checkbox]:checked + .ci-face .ci-box::after {
+      content:'';display:block;width:5px;height:9px;
+      border:2px solid #fff;border-top:none;border-left:none;
+      transform:rotate(45deg) translateY(-1px);
+    }
+    .ci input[type=radio]:checked + .ci-face .ci-box::after {
+      content:'';width:8px;height:8px;background:#fff;border-radius:50%;display:block;
+    }
+
+    /* ═══════════════════════════════════════════
+       PAIN SCALE
+    ═══════════════════════════════════════════ */
+    .pain-rows { display:flex;flex-direction:column;gap:11px; }
+    .pain-row {
+      display:flex;align-items:center;justify-content:space-between;gap:16px;
+      background:var(--bg-input);border:1px solid var(--border);
+      border-radius:var(--r-sm);padding:13px 16px;
+      transition:border-color .2s;
+    }
+    /* Mobile: stack label above dots */
+    @media(max-width:600px){
+      .pain-row { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .pain-dots { width: 100%; justify-content: space-between; }
+    }
+    .pain-row.rated { border-color:rgba(124,106,247,.28); }
+    .pain-info { flex:1;min-width:0; }
+    .pain-name { font-size:14px;font-weight:500;color:var(--text-1); }
+    .pain-desc { font-size:12px;color:var(--text-3);margin-top:2px; }
+    .pain-dots { display:flex;gap:7px;flex-shrink:0; }
+    .pd {
+      width:30px;height:30px;border-radius:50%;
+      border:1.5px solid var(--border-focus);cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      font-size:11px;font-weight:600;color:var(--text-3);
+      transition:all .16s;flex-shrink:0;
+    }
+    /* Bigger tap targets on mobile */
+    @media(max-width:600px){
+      .pd { width: 44px; height: 44px; font-size: 13px; }
+    }
+    .pd:hover { border-color:var(--accent);color:var(--text-2); }
+    .pd.on { color:#fff;border-color:transparent; }
+    .pd[data-v="1"].on{background:#22c55e;}
+    .pd[data-v="2"].on{background:#84cc16;}
+    .pd[data-v="3"].on{background:#f59e0b;}
+    .pd[data-v="4"].on{background:#f97316;}
+    .pd[data-v="5"].on{background:#ef4444;box-shadow:0 0 10px rgba(239,68,68,.38);}
+    .pain-legend { display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);padding:0 4px;margin-top:6px; }
+
+    /* ═══════════════════════════════════════════
+       RANGE SLIDER
+    ═══════════════════════════════════════════ */
+    .range-wrap { padding:4px 0 0; }
+    input[type=range] {
+      -webkit-appearance:none;appearance:none;
+      width:100%;height:4px;border-radius:100px;
+      background:linear-gradient(90deg,var(--accent) var(--pct,0%),rgba(255,255,255,.1) var(--pct,0%));
+      outline:none;cursor:pointer;border:none;padding:0;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance:none;appearance:none;
+      width:20px;height:20px;border-radius:50%;
+      background:#fff;border:3px solid var(--accent);
+      box-shadow:0 0 0 4px var(--accent-soft);
+      transition:box-shadow .2s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { box-shadow:0 0 0 7px var(--accent-soft); }
+    .range-labels { display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);margin-top:10px; }
+    .range-val { text-align:center;font-size:18px;font-weight:700;color:var(--accent);margin-top:6px; }
+
+    /* ═══════════════════════════════════════════
+       SAARA SHOWCASE
+    ═══════════════════════════════════════════ */
+    .showcase {
+      background:linear-gradient(135deg,rgba(79,142,247,.08),rgba(124,106,247,.06));
+      border:1px solid rgba(124,106,247,.22);border-radius:var(--r-xl);
+      padding:40px 36px;margin-bottom:14px;position:relative;overflow:hidden;
+    }
+    @media(max-width:600px){
+      .showcase { padding: 28px 20px; border-radius: var(--r-lg); }
+      .sc-title { font-size: 20px; }
+      .sc-body { font-size: 14px; }
+    }
+    .showcase::before {
+      content:'';position:absolute;top:0;left:0;right:0;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(124,106,247,.55),transparent);
+    }
+    .sc-kicker { font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#818cf8;margin-bottom:12px; }
+    .sc-title { font-size:24px;font-weight:800;letter-spacing:-.6px;line-height:1.2;margin-bottom:14px; }
+    .sc-body { font-size:15px;color:var(--text-2);line-height:1.7;margin-bottom:26px; }
+    .pills { display:flex;flex-wrap:wrap;gap:8px; }
+    .pill {
+      background:rgba(124,106,247,.14);border:1px solid rgba(124,106,247,.22);
+      border-radius:100px;padding:6px 14px;font-size:12px;font-weight:500;color:#a5b4fc;
+      display:flex;align-items:center;gap:6px;
+    }
+
+    /* ═══════════════════════════════════════════
+       STAT ROW (ROI Banner)
+    ═══════════════════════════════════════════ */
+    .stat-row {
+      display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;
+    }
+    @media(max-width:600px){.stat-row{grid-template-columns:1fr; gap:8px;}}
+    .stat-card {
+      background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);
+      padding:20px 18px;text-align:center;
+    }
+    .stat-num { font-size:28px;font-weight:800;letter-spacing:-1px;color:var(--text-1);margin-bottom:4px; }
+    .stat-num span { background:linear-gradient(120deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+    .stat-desc { font-size:12px;color:var(--text-3);line-height:1.4; }
+
+    /* ═══════════════════════════════════════════
+       COMMITMENT
+    ═══════════════════════════════════════════ */
+    .commit-section {
+      background:linear-gradient(160deg,#0c0c14,#0e0e1a);
+      border:1px solid rgba(124,106,247,.18);border-radius:var(--r-xl);
+      padding:40px 36px;margin-bottom:14px;position:relative;overflow:hidden;
+    }
+    @media(max-width:600px){
+      .commit-section { padding: 24px 18px; border-radius: var(--r-lg); }
+      .commit-h { font-size: 18px; }
+      .commit-p { font-size: 14px; margin-bottom: 20px; }
+    }
+    .commit-section::after {
+      content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(124,106,247,.35),transparent);
+    }
+    .commit-h { font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:10px; }
+    .commit-p { font-size:15px;color:var(--text-2);line-height:1.7;margin-bottom:28px; }
+
+    /* tier cards */
+    .tier-grid { display:flex;flex-direction:column;gap:12px;margin-bottom:28px; }
+    .tier-card {
+      background:var(--bg-input);border:1.5px solid var(--border);
+      border-radius:var(--r-md);padding:20px 20px;cursor:pointer;
+      transition:all .2s var(--ease);position:relative;overflow:hidden;
+    }
+    @media(max-width:600px){
+      .tier-card { padding: 16px 14px; padding-right: 44px; }
+      .tier-title { font-size: 14px; }
+      .tier-desc { font-size: 12px; }
+    }
+    .tier-card:hover { border-color:var(--border-focus);background:var(--bg-hover); }
+    .tier-card.selected { border-color:var(--accent);background:var(--accent-soft); }
+    .tier-card.selected.gold { border-color:#fbbf24;background:rgba(251,191,36,.07); }
+    .tier-badge {
+      display:inline-flex;align-items:center;gap:6px;
+      font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+      border-radius:100px;padding:3px 10px;margin-bottom:8px;
+    }
+    .badge-beta { background:rgba(79,142,247,.15);color:var(--accent); }
+    .badge-early { background:rgba(124,106,247,.15);color:#a78bfa; }
+    .badge-info { background:rgba(255,255,255,.06);color:var(--text-3); }
+    .badge-gold { background:rgba(251,191,36,.15);color:#fbbf24; }
+    .tier-title { font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:4px; }
+    .tier-desc { font-size:13px;color:var(--text-2);line-height:1.5; }
+    .tier-perks { display:flex;flex-wrap:wrap;gap:6px;margin-top:10px; }
+    .perk { font-size:11px;color:var(--text-3);background:rgba(255,255,255,.04);border-radius:100px;padding:3px 10px; }
+    .tier-radio { position:absolute;top:18px;right:18px;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border-focus);display:flex;align-items:center;justify-content:center; }
+    .tier-card.selected .tier-radio { background:var(--accent);border-color:var(--accent); }
+    .tier-card.selected.gold .tier-radio { background:#fbbf24;border-color:#fbbf24; }
+    .tier-radio::after { content:'';width:7px;height:7px;border-radius:50%;background:#fff;display:none; }
+    .tier-card.selected .tier-radio::after { display:block; }
+
+    .statement-box {
+      background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.18);
+      border-radius:var(--r-md);padding:18px 20px;font-size:14px;
+      color:var(--text-2);line-height:1.7;margin-bottom:22px;font-style:italic;
+    }
+
+    .sig-row { display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px; }
+    @media(max-width:560px){.sig-row{grid-template-columns:1fr;}}
+
+    .final-check {
+      display:flex;align-items:flex-start;gap:13px;cursor:pointer;
+      padding:16px;background:rgba(255,255,255,.03);
+      border:1px solid var(--border);border-radius:var(--r-sm);
+      transition:all .2s;
+    }
+    .final-check:hover { background:rgba(255,255,255,.05);border-color:var(--border-focus); }
+    .final-check.on { border-color:var(--accent);background:var(--accent-soft); }
+    .chk-box {
+      width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border-focus);
+      flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;
+      transition:all .2s;
+    }
+    .final-check.on .chk-box { background:var(--accent);border-color:var(--accent); }
+    .chk-lbl { font-size:14px;color:var(--text-2);line-height:1.55; }
+    .chk-lbl strong { color:var(--text-1); }
+
+    /* ═══════════════════════════════════════════
+       NAV BUTTONS
+    ═══════════════════════════════════════════ */
+    .btn-row { display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:32px; }
+    @media(max-width:600px){
+      .btn-row { flex-direction: row; gap: 10px; margin-top: 24px; }
+    }
+    .btn {
+      display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;
+      font-family:inherit;font-weight:600;letter-spacing:-.2px;border-radius:var(--r-sm);
+      transition:all .2s var(--ease);text-decoration:none;
+    }
+    .btn-primary {
+      background:linear-gradient(135deg,#4f8ef7,#7c6af7);color:#fff;
+      font-size:15px;padding:14px 28px;
+      box-shadow:0 0 0 1px rgba(124,106,247,.35),0 8px 28px rgba(79,142,247,.28);
+    }
+    @media(max-width:600px){
+      .btn-primary { flex: 1; justify-content: center; font-size: 15px; padding: 15px 20px; }
+      .btn-ghost { padding: 12px 16px; font-size: 14px; }
+    }
+    .btn-primary:hover { transform:translateY(-1px);box-shadow:0 0 0 1px rgba(124,106,247,.5),0 14px 36px rgba(79,142,247,.38); }
+    .btn-primary:active { transform:none; }
+    .btn-primary:disabled { opacity:.4;cursor:not-allowed;transform:none; }
+    .btn-ghost {
+      background:transparent;color:var(--text-3);font-size:14px;
+      padding:12px 20px;border:1px solid var(--border);
+    }
+    .btn-ghost:hover { border-color:var(--border-focus);color:var(--text-2); }
+
+    /* ═══════════════════════════════════════════
+       SUCCESS
+    ═══════════════════════════════════════════ */
+    #success-view { display:none;text-align:center;padding:60px 24px 80px; animation:fadeUp .5s var(--ease); }
+    @media(max-width:600px){ #success-view { padding: 40px 8px 60px; } }
+    .success-ring {
+      width:88px;height:88px;border-radius:50%;margin:0 auto 32px;
+      background:linear-gradient(135deg,rgba(52,211,153,.14),rgba(52,211,153,.04));
+      border:1px solid rgba(52,211,153,.3);
+      display:flex;align-items:center;justify-content:center;font-size:38px;
+      position:relative;
+    }
+    .success-ring::before {
+      content:'';position:absolute;inset:-6px;border-radius:50%;
+      border:1px solid rgba(52,211,153,.12);
+    }
+    .s-h { font-size:36px;font-weight:800;letter-spacing:-1px;margin-bottom:14px; }
+    @media(max-width:600px){ .s-h { font-size: 28px; } }
+    .s-p { font-size:16px;color:var(--text-2);line-height:1.7;max-width:460px;margin:0 auto 36px; }
+    @media(max-width:600px){ .s-p { font-size: 15px; } }
+    .s-details { display:flex;flex-direction:column;gap:10px;max-width:380px;margin:0 auto 36px; }
+    .s-detail { display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;color:var(--text-3); }
+    .s-detail strong { color:var(--text-2); }
+    .s-tier-badge {
+      display:inline-flex;align-items:center;gap:8px;border-radius:100px;
+      padding:10px 22px;font-size:13px;font-weight:600;margin:0 auto;
+    }
+    .s-tier-beta { background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.25);color:var(--accent); }
+    .s-tier-early { background:rgba(124,106,247,.1);border:1px solid rgba(124,106,247,.25);color:#a78bfa; }
+    .s-tier-info  { background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text-2); }
+    .s-tier-gold  { background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fbbf24; }
+    /* Calendly CTA */
+    .calendly-cta {
+      margin: 32px auto 0; max-width: 420px;
+      background: linear-gradient(135deg,rgba(79,142,247,.1),rgba(124,106,247,.08));
+      border: 1px solid rgba(124,106,247,.25); border-radius: var(--r-lg);
+      padding: 28px 24px; text-align: center;
+    }
+    .cal-heading { font-size: 17px; font-weight: 700; color: var(--text-1); margin-bottom: 8px; letter-spacing: -.3px; }
+    .cal-sub { font-size: 14px; color: var(--text-2); line-height: 1.6; margin-bottom: 20px; }
+    .btn-cal {
+      display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+      width: 100%; background: linear-gradient(135deg,#4f8ef7,#7c6af7); color: #fff;
+      font-family: inherit; font-size: 15px; font-weight: 600; padding: 14px 24px;
+      border: none; border-radius: var(--r-sm); cursor: pointer; text-decoration: none;
+      box-shadow: 0 0 0 1px rgba(124,106,247,.35), 0 8px 28px rgba(79,142,247,.28);
+      transition: all .2s var(--ease);
+    }
+    .btn-cal:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px rgba(124,106,247,.5), 0 14px 36px rgba(79,142,247,.38); }
+    .cal-note { font-size: 11px; color: var(--text-3); margin-top: 10px; }
+
+    /* ═══════════════════════════════════════════
+       TOAST
+    ═══════════════════════════════════════════ */
+    .toast {
+      position:fixed;bottom:32px;left:50%;
+      transform:translateX(-50%) translateY(80px);
+      background:rgba(20,20,28,.96);backdrop-filter:blur(20px);
+      border:1px solid var(--border);border-radius:var(--r-md);
+      padding:13px 20px;font-size:14px;color:var(--text-2);
+      white-space:nowrap;z-index:9999;
+      transition:transform .38s var(--ease);
+      display:flex;align-items:center;gap:10px;
+      box-shadow:0 8px 40px rgba(0,0,0,.5);
+    }
+    .toast.show { transform:translateX(-50%) translateY(0); }
+    .toast.err { border-color:rgba(248,113,113,.3); }
+    .t-ico { font-size:16px; }
+
+    /* ═══════════════════════════════════════════
+       FOOTER
+    ═══════════════════════════════════════════ */
+    .page-footer { text-align:center;margin-top:56px;font-size:12px;color:var(--text-3);line-height:2; }
+
+    /* ═══════════════════════════════════════════
+       DIVIDER
+    ═══════════════════════════════════════════ */
+    .divider { border:none;border-top:1px solid var(--border);margin:20px 0; }
+  </style>
+</head>
+<body>
+
+<div class="bg-canvas">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<div class="wrap">
+
+  <!-- ──────────────────────────────────────────
+       HERO
+  ─────────────────────────────────────────── -->
+  <header class="hero">
+    <a class="logo-unit" href="#">
+      <div class="logo-gem">S</div>
+      <span class="logo-name">saara</span>
+    </a>
+    <p class="eyebrow">Practice Intelligence Survey</p>
+    <h1 class="hero-h1">Your practice deserves<br><em>intelligence, not overhead.</em></h1>
+    <p class="hero-sub">
+      We built Saara to give physicians and practice owners their time back.
+      Help us understand what's slowing you down — and we'll show you how we fix it.
+    </p>
+    <div class="hero-pill">
+      <div class="pulse"></div>
+      <span>~5 min &nbsp;·&nbsp; <strong>7 steps</strong> &nbsp;·&nbsp; Completely confidential</span>
+    </div>
+  </header>
+
+  <!-- ──────────────────────────────────────────
+       PROGRESS
+  ─────────────────────────────────────────── -->
+  <div id="progress-bar-wrap">
+    <div class="progress-glass">
+      <span class="prog-label">Step <b id="sc">1</b> of <b id="st">7</b></span>
+      <div class="prog-track"><div class="prog-fill" id="pf"></div></div>
+      <span class="prog-pct" id="pp">0%</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       STEP 1 — About You
+  ══════════════════════════════════════════ -->
+  <div class="f-section active" id="s1">
+    <div class="section-hd">
+      <p class="section-kicker">Step 1 of 7 — Your Practice</p>
+      <h2 class="section-title">Let's start with the basics.</h2>
+      <p class="section-body">Tell us about yourself and your practice so we can personalize your experience.</p>
+    </div>
+
+    <div class="card">
+      <div class="frow">
+        <div class="fgroup">
+          <label class="lbl">Your Name <span class="req">*</span></label>
+          <input type="text" id="f-name" placeholder="Dr. Jane Smith" autocomplete="name" />
+          <p class="f-err" id="e-name">Please enter your name.</p>
+        </div>
+        <div class="fgroup">
+          <label class="lbl">Practice / Clinic Name <span class="req">*</span></label>
+          <input type="text" id="f-clinic" placeholder="Evergreen Medical Group" />
+          <p class="f-err" id="e-clinic">Please enter your practice name.</p>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fgroup">
+          <label class="lbl">Specialty <span class="req">*</span></label>
+          <select id="f-specialty">
+            <option value="" disabled selected>Select your specialty</option>
+            <option>Primary Care / Family Medicine</option>
+            <option>Internal Medicine</option>
+            <option>Pediatrics</option>
+            <option>OB/GYN</option>
+            <option>Orthopedics</option>
+            <option>Cardiology</option>
+            <option>Dermatology</option>
+            <option>Mental Health / Psychiatry</option>
+            <option>Physical Therapy / Rehab</option>
+            <option>Chiropractic</option>
+            <option>Dental</option>
+            <option>Ophthalmology</option>
+            <option>Neurology</option>
+            <option>Oncology</option>
+            <option>Urgent Care</option>
+            <option>Other Specialty</option>
+          </select>
+          <p class="f-err" id="e-specialty">Please select your specialty.</p>
+        </div>
+        <div class="fgroup">
+          <label class="lbl">Practice Size</label>
+          <select id="f-size">
+            <option value="" disabled selected>Number of providers</option>
+            <option value="solo">Solo (just me)</option>
+            <option value="2-5">Small (2–5 providers)</option>
+            <option value="6-15">Mid-size (6–15 providers)</option>
+            <option value="16-50">Large (16–50 providers)</option>
+            <option value="50+">Enterprise (50+)</option>
+          </select>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fgroup">
+          <label class="lbl">Email Address <span class="req">*</span></label>
+          <input type="email" id="f-email" placeholder="you@yourpractice.com" autocomplete="email" />
+          <p class="f-err" id="e-email">Please enter a valid email.</p>
+        </div>
+        <div class="fgroup">
+          <label class="lbl">Years in Practice</label>
+          <select id="f-years">
+            <option value="" disabled selected>How long have you been practicing?</option>
+            <option>Less than 2 years</option>
+            <option>2–5 years</option>
+            <option>6–10 years</option>
+            <option>11–20 years</option>
+            <option>20+ years</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <div></div>
+      <button class="btn btn-primary" onclick="next(1)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       STEP 2 — Pain Mapping
+  ══════════════════════════════════════════ -->
+  <div class="f-section" id="s2">
+    <div class="section-hd">
+      <p class="section-kicker">Step 2 of 7 — Operational Pain Map</p>
+      <h2 class="section-title">Where is the friction?</h2>
+      <p class="section-body">Rate each area on a scale of <strong style="color:var(--text-1)">1 (no issue)</strong> to <strong style="color:var(--text-1)">5 (critical pain)</strong>. Be brutally honest — this helps us help you.</p>
+    </div>
+
+    <div class="card">
+      <div class="pain-rows" id="pain-rows">
+
+        <div class="pain-row" id="pr-billing">
+          <div class="pain-info">
+            <div class="pain-name">💰 Billing & Revenue Cycle</div>
+            <div class="pain-desc">Claim denials, coding errors, delayed reimbursements, underpayments</div>
+          </div>
+          <div class="pain-dots" data-f="billing">
+            <div class="pd" data-v="1">1</div><div class="pd" data-v="2">2</div>
+            <div class="pd" data-v="3">3</div><div class="pd" data-v="4">4</div><div class="pd" data-v="5">5</div>
+          </div>
+        </div>
+
+        <div class="pain-row" id="pr-compliance">
+          <div class="pain-info">
+            <div class="pain-name">📑 Compliance & Prior Authorizations</div>
+            <div class="pain-desc">HIPAA burden, payer audits, prior auth delays, regulatory changes</div>
+          </div>
+          <div class="pain-dots" data-f="compliance">
+            <div class="pd" data-v="1">1</div><div class="pd" data-v="2">2</div>
+            <div class="pd" data-v="3">3</div><div class="pd" data-v="4">4</div><div class="pd" data-v="5">5</div>
+          </div>
+        </div>
+
+        <div class="pain-row" id="pr-scheduling">
+          <div class="pain-info">
+            <div class="pain-name">📅 Scheduling & Patient Flow</div>
+            <div class="pain-desc">No-shows, overbooking, waitlists, revenue gaps from empty slots</div>
+          </div>
+          <div class="pain-dots" data-f="scheduling">
+            <div class="pd" data-v="1">1</div><div class="pd" data-v="2">2</div>
+            <div class="pd" data-v="3">3</div><div class="pd" data-v="4">4</div><div class="pd" data-v="5">5</div>
+          </div>
+        </div>
+
+        <div class="pain-row" id="pr-notes">
+          <div class="pain-info">
+            <div class="pain-name">📋 Clinical Documentation & Charting</div>
+            <div class="pain-desc">Hours on EHR, after-hours charting, note accuracy, documentation burden</div>
+          </div>
+          <div class="pain-dots" data-f="clinical-notes">
+            <div class="pd" data-v="1">1</div><div class="pd" data-v="2">2</div>
+            <div class="pd" data-v="3">3</div><div class="pd" data-v="4">4</div><div class="pd" data-v="5">5</div>
+          </div>
+        </div>
+
+        <div class="pain-row" id="pr-staff">
+          <div class="pain-info">
+            <div class="pain-name">👥 Staff Management & Burnout</div>
+            <div class="pain-desc">High turnover, training overload, workload imbalance, team burnout</div>
+          </div>
+          <div class="pain-dots" data-f="staff">
+            <div class="pd" data-v="1">1</div><div class="pd" data-v="2">2</div>
+            <div class="pd" data-v="3">3</div><div class="pd" data-v="4">4</div><div class="pd" data-v="5">5</div>
+          </div>
+        </div>
+
+        <div class="pain-row" id="pr-comms">
+          <div class="pain-info">
+            <div class="pain-name">💬 Patient Communication & Follow-up</div>
+            <div class="pain-desc">Recall management, care gaps, reminders, patient satisfaction scores</div>
+          </div>
+          <div class="pain-dots" data-f="patient-comms">
+            <div class="pd" data-v="1">1</div><div class="pd" data-v="2">2</div>
+            <div class="pd" data-v="3">3</div><div class="pd" data-v="4">4</div><div class="pd" data-v="5">5</div>
+          </div>
+        </div>
+
+      </div>
+      <div class="pain-legend"><span>1 = Not an issue</span><span>5 = Critical pain</span></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="prev(2)">← Back</button>
+      <button class="btn btn-primary" onclick="next(2)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       STEP 3 — Deeper Pain Dive
+  ══════════════════════════════════════════ -->
+  <div class="f-section" id="s3">
+    <div class="section-hd">
+      <p class="section-kicker">Step 3 of 7 — Pain Deep Dive</p>
+      <h2 class="section-title">Let's go deeper.</h2>
+      <p class="section-body">Understanding the specifics helps us map your exact situation to what Saara solves.</p>
+    </div>
+
+    <!-- Q: Biggest single challenge -->
+    <div class="card">
+      <div class="card-title">What is your single biggest operational challenge right now? <span class="req">*</span></div>
+      <div class="card-sub">Choose one. Be direct — there are no wrong answers.</div>
+      <div class="choices">
+        <label class="ci"><input type="radio" name="top-pain" value="Billing & revenue leakage" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">💰 Billing & Revenue Leakage</div><div class="ci-sub">I'm losing money through denied claims, coding errors, or slow reimbursements</div></div></div></label>
+        <label class="ci"><input type="radio" name="top-pain" value="Documentation overload" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">📋 Documentation Overload</div><div class="ci-sub">I spend too many hours on charting, EHR, and administrative paperwork</div></div></div></label>
+        <label class="ci"><input type="radio" name="top-pain" value="Prior auths & compliance burden" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">📑 Prior Auths & Compliance</div><div class="ci-sub">Prior authorization delays and regulatory requirements are slowing patient care</div></div></div></label>
+        <label class="ci"><input type="radio" name="top-pain" value="Staff efficiency & retention" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">👥 Staff Efficiency & Retention</div><div class="ci-sub">High turnover and overwhelmed teams are hurting operations and culture</div></div></div></label>
+        <label class="ci"><input type="radio" name="top-pain" value="Patient no-shows & scheduling gaps" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">📅 Scheduling & No-shows</div><div class="ci-sub">Empty slots and last-minute cancellations are costing me revenue every day</div></div></div></label>
+        <label class="ci"><input type="radio" name="top-pain" value="Physician burnout" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">🔥 Physician Burnout</div><div class="ci-sub">Unsustainable workload is affecting my wellbeing and quality of patient care</div></div></div></label>
+      </div>
+      <p class="f-err" id="e-top-pain">Please select your biggest challenge.</p>
+    </div>
+
+    <!-- Q: Billing detail -->
+    <div class="card">
+      <div class="card-title">How are billing issues most commonly showing up in your practice?</div>
+      <div class="card-sub">Select all that apply.</div>
+      <div class="choices c2">
+        <label class="ci"><input type="checkbox" name="billing-detail" value="Claim denials & rejections" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Claim Denials & Rejections</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="billing-detail" value="Incorrect or missed codes" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Incorrect or Missed Codes</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="billing-detail" value="Slow payer reimbursements" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Slow Payer Reimbursements</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="billing-detail" value="Patient collections difficulty" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Patient Collections Difficulty</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="billing-detail" value="Credentialing delays" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Credentialing Delays</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="billing-detail" value="Lack of visibility into AR" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">No Visibility into A/R</div></div></div></label>
+      </div>
+    </div>
+
+    <!-- Q: Documentation hours -->
+    <div class="card">
+      <div class="card-title">How many hours per week do you personally spend on documentation and admin tasks? <span class="req">*</span></div>
+      <div class="card-sub">This includes EHR charting, emails, prior auths, and paperwork — not direct patient care.</div>
+      <div class="choices">
+        <label class="ci"><input type="radio" name="doc-hours" value="Less than 5 hours/week" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Less than 5 hours</div><div class="ci-sub">Minimal — my systems are fairly efficient</div></div></div></label>
+        <label class="ci"><input type="radio" name="doc-hours" value="5-10 hours/week" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">5–10 hours</div><div class="ci-sub">A workday per week lost to administrative tasks</div></div></div></label>
+        <label class="ci"><input type="radio" name="doc-hours" value="10-20 hours/week" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">10–20 hours</div><div class="ci-sub">A significant portion of my week — very frustrating</div></div></div></label>
+        <label class="ci"><input type="radio" name="doc-hours" value="20+ hours/week" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">More than 20 hours</div><div class="ci-sub">Half my work week — I feel like an administrator, not a physician</div></div></div></label>
+      </div>
+      <p class="f-err" id="e-doc-hours">Please select an option.</p>
+    </div>
+
+    <!-- Q: Prior auths -->
+    <div class="card">
+      <div class="card-title">How many prior authorization requests does your practice handle per week?</div>
+      <div class="choices c2">
+        <label class="ci"><input type="radio" name="prior-auth" value="Fewer than 5/week" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Fewer than 5 / week</div></div></div></label>
+        <label class="ci"><input type="radio" name="prior-auth" value="5-15/week" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">5–15 / week</div></div></div></label>
+        <label class="ci"><input type="radio" name="prior-auth" value="15-30/week" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">15–30 / week</div></div></div></label>
+        <label class="ci"><input type="radio" name="prior-auth" value="30+/week" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">30+ / week — it's constant</div></div></div></label>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="prev(3)">← Back</button>
+      <button class="btn btn-primary" onclick="next(3)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       STEP 4 — Financial Context
+  ══════════════════════════════════════════ -->
+  <div class="f-section" id="s4">
+    <div class="section-hd">
+      <p class="section-kicker">Step 4 of 7 — Financial Picture</p>
+      <h2 class="section-title">The cost of the problem.</h2>
+      <p class="section-body">AI delivers measurable ROI. Help us quantify the opportunity — for you, and for the case we're building to transform healthcare.</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-num"><span>$125K</span></div>
+        <div class="stat-desc">Average annual revenue lost per physician to billing inefficiencies</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num"><span>16 hrs</span></div>
+        <div class="stat-desc">Average hours per week physicians spend on non-clinical administrative work</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num"><span>34%</span></div>
+        <div class="stat-desc">Of prior auth requests are eventually approved after denial — hours wasted</div>
+      </div>
+    </div>
+
+    <!-- Q: Practice revenue -->
+    <div class="card">
+      <div class="card-title">Approximately what is your practice's annual revenue?</div>
+      <div class="card-sub">This helps us understand the ROI potential Saara can unlock for you. All responses are confidential.</div>
+      <div class="choices c2">
+        <label class="ci"><input type="radio" name="revenue" value="Under $500K" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Under $500K</div></div></div></label>
+        <label class="ci"><input type="radio" name="revenue" value="$500K – $1M" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">$500K – $1M</div></div></div></label>
+        <label class="ci"><input type="radio" name="revenue" value="$1M – $3M" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">$1M – $3M</div></div></div></label>
+        <label class="ci"><input type="radio" name="revenue" value="$3M – $10M" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">$3M – $10M</div></div></div></label>
+        <label class="ci"><input type="radio" name="revenue" value="$10M+" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">$10M+</div></div></div></label>
+        <label class="ci"><input type="radio" name="revenue" value="Prefer not to say" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Prefer not to say</div></div></div></label>
+      </div>
+    </div>
+
+    <!-- Q: Monthly revenue lost -->
+    <div class="card">
+      <div class="card-title">How much revenue do you estimate your practice loses monthly due to operational inefficiencies?</div>
+      <div class="card-sub">Think: uncollected claims, no-shows, unnecessary vendor fees, billing errors.</div>
+      <div class="choices c2">
+        <label class="ci"><input type="radio" name="rev-lost" value="Less than $5K/mo" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Less than $5K / mo</div></div></div></label>
+        <label class="ci"><input type="radio" name="rev-lost" value="$5K–$15K/mo" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">$5K – $15K / mo</div></div></div></label>
+        <label class="ci"><input type="radio" name="rev-lost" value="$15K–$30K/mo" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">$15K – $30K / mo</div></div></div></label>
+        <label class="ci"><input type="radio" name="rev-lost" value="$30K–$50K/mo" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">$30K – $50K / mo</div></div></div></label>
+        <label class="ci"><input type="radio" name="rev-lost" value="$50K+/mo" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">$50K+ / mo</div></div></div></label>
+        <label class="ci"><input type="radio" name="rev-lost" value="Not sure" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Hard to estimate</div></div></div></label>
+      </div>
+    </div>
+
+    <!-- Q: Billing vendor -->
+    <div class="card">
+      <div class="card-title">How is your billing currently managed?</div>
+      <div class="choices">
+        <label class="ci"><input type="radio" name="billing-vendor" value="In-house billing team" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">In-house billing team</div><div class="ci-sub">We handle billing internally with dedicated staff</div></div></div></label>
+        <label class="ci"><input type="radio" name="billing-vendor" value="Outsourced billing company" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Outsourced billing company</div><div class="ci-sub">We pay a third-party RCM vendor</div></div></div></label>
+        <label class="ci"><input type="radio" name="billing-vendor" value="EHR built-in billing" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">EHR built-in billing tools</div><div class="ci-sub">We use billing features within our EHR system</div></div></div></label>
+        <label class="ci"><input type="radio" name="billing-vendor" value="Combination / hybrid" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Combination / hybrid approach</div><div class="ci-sub">Mix of in-house and outsourced</div></div></div></label>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="prev(4)">← Back</button>
+      <button class="btn btn-primary" onclick="next(4)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       STEP 5 — Tech & Tools
+  ══════════════════════════════════════════ -->
+  <div class="f-section" id="s5">
+    <div class="section-hd">
+      <p class="section-kicker">Step 5 of 7 — Technology & Readiness</p>
+      <h2 class="section-title">Your current tech stack.</h2>
+      <p class="section-body">Understanding your existing tools helps us plan how Saara integrates with — or replaces — what you already use.</p>
+    </div>
+
+    <!-- Q: EHR tools -->
+    <div class="card">
+      <div class="card-title">Which EHR or practice management systems are you currently using?</div>
+      <div class="card-sub">Select all that apply.</div>
+      <div class="choices c2">
+        <label class="ci"><input type="checkbox" name="tools" value="Epic" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Epic</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="tools" value="Athenahealth" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Athenahealth</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="tools" value="eClinicalWorks" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">eClinicalWorks</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="tools" value="DrChrono" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">DrChrono</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="tools" value="Kareo / Tebra" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Kareo / Tebra</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="tools" value="Nexgen" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Nexgen</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="tools" value="Practice Fusion" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Practice Fusion</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="tools" value="Modernizing Medicine" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Modernizing Medicine</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="tools" value="Cerner / Oracle Health" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Cerner / Oracle Health</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="tools" value="Other / Custom" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Other / Custom Build</div></div></div></label>
+      </div>
+    </div>
+
+    <!-- Q: AI familiarity -->
+    <div class="card">
+      <div class="card-title">How would you describe your practice's current relationship with AI tools?</div>
+      <div class="choices">
+        <label class="ci"><input type="radio" name="ai-fam" value="Not familiar — haven't used any" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">New to AI</div><div class="ci-sub">We haven't implemented any AI tools in our practice</div></div></div></label>
+        <label class="ci"><input type="radio" name="ai-fam" value="Curious — actively exploring options" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Exploring</div><div class="ci-sub">We're evaluating options and open to the right solution</div></div></div></label>
+        <label class="ci"><input type="radio" name="ai-fam" value="Some experience — using 1-2 AI tools" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Early Adopter</div><div class="ci-sub">We've integrated one or two AI tools already</div></div></div></label>
+        <label class="ci"><input type="radio" name="ai-fam" value="Active adopter — multiple AI tools in use" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Power User</div><div class="ci-sub">We actively leverage multiple AI tools across operations</div></div></div></label>
+      </div>
+    </div>
+
+    <!-- Q: Timeline -->
+    <div class="card">
+      <div class="card-title">If you found a platform that solved your #1 problem, how quickly could you move? <span class="req">*</span></div>
+      <div class="choices c2">
+        <label class="ci"><input type="radio" name="timeline" value="Immediately — I'm actively looking now" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">🔥 Immediately</div><div class="ci-sub">Actively evaluating now</div></div></div></label>
+        <label class="ci"><input type="radio" name="timeline" value="1-3 months" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">⚡ 1–3 months</div><div class="ci-sub">In my near-term plans</div></div></div></label>
+        <label class="ci"><input type="radio" name="timeline" value="3-6 months" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">📅 3–6 months</div><div class="ci-sub">Planning ahead for next cycle</div></div></div></label>
+        <label class="ci"><input type="radio" name="timeline" value="6-12 months" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">🗓 6–12 months</div><div class="ci-sub">Longer horizon, still interested</div></div></div></label>
+        <label class="ci"><input type="radio" name="timeline" value="Not sure yet" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">🤔 Not sure yet</div><div class="ci-sub">Depends on what I learn</div></div></div></label>
+      </div>
+      <p class="f-err" id="e-timeline">Please select a timeline.</p>
+    </div>
+
+    <!-- Q: Budget authority -->
+    <div class="card">
+      <div class="card-title">Who makes the final purchasing decision for new software or vendors at your practice?</div>
+      <div class="choices c2">
+        <label class="ci"><input type="radio" name="budget" value="I decide independently" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">I decide independently</div></div></div></label>
+        <label class="ci"><input type="radio" name="budget" value="I decide with partner physicians" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">With partner physicians</div></div></div></label>
+        <label class="ci"><input type="radio" name="budget" value="Practice manager / administrator" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Practice manager / admin</div></div></div></label>
+        <label class="ci"><input type="radio" name="budget" value="Hospital or health system leadership" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">Hospital / health system</div></div></div></label>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="prev(5)">← Back</button>
+      <button class="btn btn-primary" onclick="next(5)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       STEP 6 — Meet Saara
+  ══════════════════════════════════════════ -->
+  <div class="f-section" id="s6">
+    <div class="section-hd">
+      <p class="section-kicker">Step 6 of 7 — Meet Saara</p>
+      <h2 class="section-title">This is what we built for you.</h2>
+      <p class="section-body">Based on everything you've shared, Saara was designed to solve exactly these problems — across every layer of your practice.</p>
+    </div>
+
+    <div class="showcase">
+      <p class="sc-kicker">Saara Intelligence Corp.</p>
+      <h3 class="sc-title">The AI Operating System<br>for Private Practice & Specialty Clinics</h3>
+      <p class="sc-body">
+        Saara isn't a point solution. It's an intelligent layer that spans your entire practice —
+        eliminating documentation burden, automating revenue cycle workflows, navigating compliance
+        in real time, and turning your operational data into strategic decisions.
+        You practice medicine. Saara handles the rest.
+      </p>
+      <div class="pills">
+        <div class="pill">⚡ Autonomous Billing & RCM</div>
+        <div class="pill">📝 AI Clinical Documentation</div>
+        <div class="pill">🛡️ Compliance Autopilot</div>
+        <div class="pill">📅 Intelligent Scheduling</div>
+        <div class="pill">💬 Patient Intelligence</div>
+        <div class="pill">📊 Practice Analytics Dashboard</div>
+        <div class="pill">🔌 EHR-Agnostic Integration</div>
+        <div class="pill">🔒 HIPAA-Compliant Architecture</div>
+      </div>
+    </div>
+
+    <!-- Q: Demo interest -->
+    <div class="card">
+      <div class="card-title">How interested are you in a private, personalized demo of Saara? <span class="req">*</span></div>
+      <div class="choices">
+        <label class="ci"><input type="radio" name="demo" value="Very interested — schedule me ASAP" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">🚀 Schedule me as soon as possible</div><div class="ci-sub">I'm ready to see Saara in action and explore a fit for my practice</div></div></div></label>
+        <label class="ci"><input type="radio" name="demo" value="Interested — send materials first" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">📬 Send me materials first</div><div class="ci-sub">I'd like to review case studies or a one-pager before committing time</div></div></div></label>
+        <label class="ci"><input type="radio" name="demo" value="Curious — keep me updated" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">🤔 Keep me in the loop</div><div class="ci-sub">Not urgent, but interested in following Saara's progress</div></div></div></label>
+        <label class="ci"><input type="radio" name="demo" value="Not interested at this time" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">✋ Not right now</div><div class="ci-sub">I'll pass for now, but appreciate the survey</div></div></div></label>
+      </div>
+      <p class="f-err" id="e-demo">Please let us know your level of interest.</p>
+    </div>
+
+    <!-- Q: Confidence factors -->
+    <div class="card">
+      <div class="card-title">What would most increase your confidence in adopting a new AI platform?</div>
+      <div class="card-sub">Select all that apply.</div>
+      <div class="choices c2">
+        <label class="ci"><input type="checkbox" name="confidence" value="Proven ROI data & case studies" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">📈 Proven ROI Data</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="confidence" value="Deep EHR integration" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">🔌 Deep EHR Integration</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="confidence" value="HIPAA & SOC 2 compliance" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">🔒 HIPAA & SOC 2 Certified</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="confidence" value="Peer referrals from doctors I trust" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">🤝 Doctor Peer Referrals</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="confidence" value="White-glove onboarding & support" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">🛠 White-Glove Onboarding</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="confidence" value="Free trial or pilot period" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">🎁 Free Trial / Pilot</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="confidence" value="Transparent pricing" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">💵 Transparent Pricing</div></div></div></label>
+        <label class="ci"><input type="checkbox" name="confidence" value="Specialty-specific workflows" /><div class="ci-face"><div class="ci-box"></div><div class="ci-txt"><div class="ci-lbl">🏥 Specialty-Specific Workflows</div></div></div></label>
+      </div>
+    </div>
+
+    <!-- Q: Referral source + would refer -->
+    <div class="card">
+      <div class="frow">
+        <div class="fgroup">
+          <label class="lbl">How did you hear about Saara?</label>
+          <select id="f-referral">
+            <option value="" disabled selected>Select one</option>
+            <option>Referred by a colleague</option>
+            <option>LinkedIn or social media</option>
+            <option>Medical conference or event</option>
+            <option>Online search</option>
+            <option>Email outreach</option>
+            <option>News or press coverage</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="fgroup">
+          <label class="lbl">Would you refer Saara to peers if it delivered?</label>
+          <select id="f-would-refer">
+            <option value="" disabled selected>Select one</option>
+            <option>Absolutely — I refer freely when something works</option>
+            <option>Yes — if I had a great experience</option>
+            <option>Maybe — depends on the outcome</option>
+            <option>Unlikely — I rarely make recommendations</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="prev(6)">← Back</button>
+      <button class="btn btn-primary" onclick="next(6)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       STEP 7 — Commitment
+  ══════════════════════════════════════════ -->
+  <div class="f-section" id="s7">
+    <div class="section-hd">
+      <p class="section-kicker">Step 7 of 7 — Express Your Interest</p>
+      <h2 class="section-title">Choose your level of involvement.</h2>
+      <p class="section-body">No contracts. No obligations. Simply signal how you'd like to be a part of what Saara is building — and we'll treat that signal with the respect it deserves.</p>
+    </div>
+
+    <!-- Open comments -->
+    <div class="card">
+      <div class="card-title">Any final thoughts or specific challenges you'd like Saara to know about? <span style="font-size:12px;color:var(--text-3)">(Optional)</span></div>
+      <textarea id="f-comments" rows="4" placeholder="Share anything that would help us understand your practice better — specific frustrations, context, or questions for the Saara team…"></textarea>
+    </div>
+
+    <!-- Commitment card -->
+    <div class="commit-section">
+      <h3 class="commit-h">Select your interest tier.</h3>
+      <p class="commit-p">
+        We're building Saara in close collaboration with the physicians and practice owners who understand
+        this problem from the inside. Choose the tier that best reflects where you are.
+      </p>
+
+      <div class="tier-grid">
+
+        <div class="tier-card gold" data-tier="Founding Partner — Beta Program" onclick="selectTier(this)">
+          <div class="tier-radio"></div>
+          <span class="tier-badge badge-gold">⭐ Founding Partner</span>
+          <div class="tier-title">Beta Partner — Shape the Product</div>
+          <div class="tier-desc">I want to be directly involved in building Saara. I'm willing to participate in early access, provide feedback, and be named as a founding practice partner.</div>
+          <div class="tier-perks">
+            <span class="perk">Early product access</span>
+            <span class="perk">Direct input on roadmap</span>
+            <span class="perk">Founding partner pricing</span>
+            <span class="perk">Co-marketing opportunity</span>
+          </div>
+        </div>
+
+        <div class="tier-card" data-tier="Early Access — Pilot Program" onclick="selectTier(this)">
+          <div class="tier-radio"></div>
+          <span class="tier-badge badge-early">🚀 Early Access</span>
+          <div class="tier-title">Pilot Program — First in Line</div>
+          <div class="tier-desc">I want early access to Saara when it launches. I'm interested in a pilot and happy to be contacted when we're ready to onboard new practices.</div>
+          <div class="tier-perks">
+            <span class="perk">Priority onboarding</span>
+            <span class="perk">Pilot pricing</span>
+            <span class="perk">Dedicated implementation support</span>
+          </div>
+        </div>
+
+        <div class="tier-card" data-tier="Stay Informed — Demo Interest" onclick="selectTier(this)">
+          <div class="tier-radio"></div>
+          <span class="tier-badge badge-info">📬 Stay Informed</span>
+          <div class="tier-title">Demo Interest — Keep Me Updated</div>
+          <div class="tier-desc">I'd like to see a demo and stay informed about Saara's progress. Not ready to commit further, but open to the conversation.</div>
+          <div class="tier-perks">
+            <span class="perk">Personalized demo</span>
+            <span class="perk">Product updates</span>
+          </div>
+        </div>
+
+      </div>
+      <p class="f-err" id="e-tier">Please select an interest tier to continue.</p>
+
+      <div class="statement-box" id="statement-box">
+        "I, <strong id="prev-name">Dr. [Your Name]</strong> of <strong id="prev-clinic">[Your Practice]</strong>,
+        am expressing informal interest in Saara's AI platform. I understand this is not a binding commitment —
+        it is a signal of genuine interest and my openness to further conversation."
+      </div>
+
+      <div class="sig-row">
+        <div class="fgroup" style="margin:0">
+          <label class="lbl">Your Name</label>
+          <input type="text" id="sig-name" readonly style="opacity:.65;cursor:default;" />
+        </div>
+        <div class="fgroup" style="margin:0">
+          <label class="lbl">Practice Name</label>
+          <input type="text" id="sig-clinic" readonly style="opacity:.65;cursor:default;" />
+        </div>
+      </div>
+
+      <div class="final-check" id="final-check" onclick="toggleFinalCheck()">
+        <div class="chk-box" id="chk-box">
+          <svg id="chk-svg" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <div class="chk-lbl">
+          <strong>Yes, I'm expressing interest in Saara.</strong> I'd like the team to contact me based on the tier I selected above. I understand this is informal and non-binding.
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="prev(7)">← Back</button>
+      <button class="btn btn-primary" id="submit-btn" onclick="submitForm()">
+        Submit & Express Interest ✦
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SUCCESS
+  ══════════════════════════════════════════ -->
+  <div id="success-view">
+    <div class="success-ring">✦</div>
+    <h2 class="s-h">Thank you, <span id="s-name">Doctor</span>.</h2>
+    <p class="s-p">
+      Your survey has been received and your interest has been logged. A member of the Saara team
+      will be in touch personally — based on the tier you selected — within 48 hours.
+    </p>
+    <div class="s-details">
+      <div class="s-detail"><span>🏥</span><strong id="s-clinic">Your Practice</strong></div>
+      <div class="s-detail"><span>📧</span><span id="s-email"></span></div>
+      <div class="s-detail"><span>🎯</span><span id="s-tier-label"></span></div>
+    </div>
+    <div class="s-tier-badge" id="s-badge">✓ Interest Registered · Saara Early Access</div>
+
+    <!-- Calendly CTA — shown only for high-intent respondents -->
+    <div class="calendly-cta" id="calendly-cta" style="display:none;">
+      <div class="cal-heading">📅 Ready to see Saara in action?</div>
+      <div class="cal-sub">Skip the back-and-forth — book your private demo directly on our calendar. It takes 15 minutes and we'll tailor it to your specific practice challenges.</div>
+      <a class="btn-cal" href="https://calendly.com/saara-intel/demo" target="_blank" rel="noopener">
+        🚀 Book My Private Demo
+      </a>
+      <div class="cal-note">Free · 15 minutes · No commitment required</div>
+    </div>
+  </div>
+
+  <footer class="page-footer" id="page-footer">
+    <p>© 2025 Saara Intelligence Corp. &nbsp;·&nbsp; All responses are strictly confidential.</p>
+    <p>Building the AI operating system for healthcare.</p>
+  </footer>
+
+</div><!-- /wrap -->
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span class="t-ico" id="t-ico">✓</span>
+  <span id="t-msg">Saved</span>
+</div>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+  const TOTAL = 7;
+  let cur = 1;
+  let committed = false;
+  let selectedTier = '';
+
+  const painVals = {
+    billing: null, compliance: null, scheduling: null,
+    'clinical-notes': null, staff: null, 'patient-comms': null
+  };
+
+  /* ── Progress ──────────────────────────────── */
+  function updateProg(step) {
+    const pct = Math.round(((step - 1) / TOTAL) * 100);
+    document.getElementById('pf').style.width = pct + '%';
+    document.getElementById('pp').textContent = pct + '%';
+    document.getElementById('sc').textContent = step;
+  }
+
+  /* ── Navigate ──────────────────────────────── */
+  function showStep(n) {
+    document.querySelectorAll('.f-section').forEach(s => {
+      s.classList.remove('active');
+      s.style.display = 'none';
+    });
+    const el = document.getElementById('s' + n);
+    el.style.display = 'block';
+    el.classList.add('active');
+    cur = n;
+    updateProg(n);
+
+    const hero = document.querySelector('.hero');
+    const wrap = document.querySelector('.wrap');
+
+    if (n > 1) {
+      // Collapse hero so the questionnaire sits at the top
+      if (hero && !hero.classList.contains('collapsed')) {
+        hero.classList.add('collapsed');
+        wrap.classList.add('survey-active');
+      }
+      // After the collapse animation, scroll the progress bar to top
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 60);
+    } else {
+      // Coming back to Step 1 — restore the hero
+      if (hero) hero.classList.remove('collapsed');
+      wrap.classList.remove('survey-active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function next(from) {
+    if (!validate(from)) return;
+    if (from === 1) prefillSig();
+    showStep(from + 1);
+  }
+  function prev(from) { showStep(from - 1); }
+
+  /* ── Validation ────────────────────────────── */
+  function validate(step) {
+    let ok = true;
+    if (step === 1) {
+      [['f-name','e-name'],['f-clinic','e-clinic'],['f-specialty','e-specialty'],['f-email','e-email']]
+        .forEach(([fid, eid]) => {
+          const el = document.getElementById(fid);
+          const err = document.getElementById(eid);
+          clearE(err); el.classList.remove('invalid');
+          const val = el.value.trim();
+          const bad = !val || (fid === 'f-email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val));
+          if (bad) { showE(err); el.classList.add('invalid'); ok = false; }
+        });
+    }
+    if (step === 3) {
+      const tp = document.querySelector('input[name="top-pain"]:checked');
+      const dh = document.querySelector('input[name="doc-hours"]:checked');
+      clearE('e-top-pain'); clearE('e-doc-hours');
+      if (!tp) { showE('e-top-pain'); ok = false; }
+      if (!dh) { showE('e-doc-hours'); ok = false; }
+    }
+    if (step === 5) {
+      const tl = document.querySelector('input[name="timeline"]:checked');
+      clearE('e-timeline');
+      if (!tl) { showE('e-timeline'); ok = false; }
+    }
+    if (step === 6) {
+      const demo = document.querySelector('input[name="demo"]:checked');
+      clearE('e-demo');
+      if (!demo) { showE('e-demo'); ok = false; }
+    }
+    return ok;
+  }
+
+  function showE(id) {
+    const el = typeof id === 'string' ? document.getElementById(id) : id;
+    if (el) el.classList.add('on');
+  }
+  function clearE(id) {
+    const el = typeof id === 'string' ? document.getElementById(id) : id;
+    if (el) el.classList.remove('on');
+  }
+
+  /* ── Pain Dots ─────────────────────────────── */
+  document.querySelectorAll('.pain-dots').forEach(group => {
+    const field = group.dataset.f;
+    group.querySelectorAll('.pd').forEach(dot => {
+      dot.addEventListener('click', () => {
+        group.querySelectorAll('.pd').forEach(d => d.classList.remove('on'));
+        dot.classList.add('on');
+        painVals[field] = parseInt(dot.dataset.v);
+        const row = group.closest('.pain-row');
+        if (row) row.classList.add('rated');
+      });
+    });
+  });
+
+  /* ── Signature Prefill ─────────────────────── */
+  function prefillSig() {
+    const name   = document.getElementById('f-name').value.trim();
+    const clinic = document.getElementById('f-clinic').value.trim();
+    document.getElementById('sig-name').value   = name;
+    document.getElementById('sig-clinic').value = clinic;
+    document.getElementById('prev-name').textContent  = name   || 'Dr. [Your Name]';
+    document.getElementById('prev-clinic').textContent = clinic || '[Your Practice]';
+  }
+
+  /* ── Tier Selection ────────────────────────── */
+  function selectTier(card) {
+    document.querySelectorAll('.tier-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedTier = card.dataset.tier;
+    clearE('e-tier');
+  }
+
+  /* ── Final Checkbox ────────────────────────── */
+  function toggleFinalCheck() {
+    committed = !committed;
+    const row = document.getElementById('final-check');
+    const box = document.getElementById('chk-box');
+    const svg = document.getElementById('chk-svg');
+    row.classList.toggle('on', committed);
+    box.style.background = committed ? '#4f8ef7' : '';
+    box.style.borderColor = committed ? '#4f8ef7' : '';
+    svg.style.display = committed ? 'block' : 'none';
+  }
+
+  /* ── Submit ────────────────────────────────── */
+  async function submitForm() {
+    if (!selectedTier) { showE('e-tier'); return; }
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    const v = (id) => document.getElementById(id)?.value?.trim() || '';
+    const radio = (name) => document.querySelector(`input[name="${name}"]:checked`)?.value || '';
+    const checks = (name) => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(e => e.value).join(', ');
+
+    const payload = {
+      doctor_name:          v('f-name'),
+      clinic_name:          v('f-clinic'),
+      specialty:            v('f-specialty'),
+      practice_size:        v('f-size'),
+      email:                v('f-email'),
+      years_in_practice:    v('f-years'),
+      pain_billing:         painVals['billing']        || 0,
+      pain_compliance:      painVals['compliance']     || 0,
+      pain_scheduling:      painVals['scheduling']     || 0,
+      pain_clinical_notes:  painVals['clinical-notes'] || 0,
+      pain_staff:           painVals['staff']          || 0,
+      pain_patient_comms:   painVals['patient-comms']  || 0,
+      top_pain_point:       radio('top-pain'),
+      billing_detail:       checks('billing-detail'),
+      documentation_hours:  radio('doc-hours'),
+      prior_auth_weekly:    radio('prior-auth'),
+      annual_revenue_est:   radio('revenue'),
+      monthly_revenue_lost: radio('rev-lost'),
+      current_billing_vendor: radio('billing-vendor'),
+      current_tools:        checks('tools'),
+      ai_openness:          radio('ai-fam'),
+      shopping_timeline:    radio('timeline'),
+      budget_authority:     radio('budget'),
+      demo_interest:        radio('demo'),
+      confidence_factors:   checks('confidence'),
+      referral_source:      v('f-referral'),
+      would_refer:          v('f-would-refer'),
+      commitment_tier:      selectedTier,
+      soft_commitment:      committed,
+      additional_comments:  v('f-comments'),
+      submitted_at:         Date.now()
+    };
+
+    try {
+      const res = await fetch('tables/saara_responses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('Server error');
+      showSuccess(payload);
+    } catch (err) {
+      console.error(err);
+      btn.disabled = false;
+      btn.textContent = 'Submit & Express Interest ✦';
+      showToast('Something went wrong. Please try again.', true);
+    }
+  }
+
+  function showSuccess(p) {
+    document.querySelectorAll('.f-section').forEach(s => s.style.display = 'none');
+    document.getElementById('progress-bar-wrap').style.display = 'none';
+    document.getElementById('s-name').textContent   = p.doctor_name || 'Doctor';
+    document.getElementById('s-clinic').textContent = p.clinic_name || 'Your Practice';
+    document.getElementById('s-email').textContent  = p.email;
+    document.getElementById('s-tier-label').textContent = p.commitment_tier || 'Interest Registered';
+
+    // Badge styling
+    const badge = document.getElementById('s-badge');
+    const tier  = p.commitment_tier || '';
+    badge.className = 's-tier-badge';
+    if (tier.includes('Founding')) { badge.classList.add('s-tier-gold'); badge.textContent = '⭐ Founding Partner — Registered'; }
+    else if (tier.includes('Early')) { badge.classList.add('s-tier-early'); badge.textContent = '🚀 Early Access — Registered'; }
+    else { badge.classList.add('s-tier-info'); badge.textContent = '✓ Interest Registered · Saara'; }
+
+    const sv = document.getElementById('success-view');
+    sv.style.display = 'block';
+    document.getElementById('pf').style.width = '100%';
+    document.getElementById('pp').textContent = '100%';
+
+    // Show Calendly CTA for high-intent respondents
+    const calCta = document.getElementById('calendly-cta');
+    const isHighIntent = p.demo_interest?.includes('ASAP') ||
+                         p.commitment_tier?.includes('Founding') ||
+                         p.commitment_tier?.includes('Early');
+    if (calCta) calCta.style.display = isHighIntent ? 'block' : 'none';
+
+    showToast('Response submitted successfully!');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ── Toast ─────────────────────────────────── */
+  function showToast(msg, isErr = false) {
+    const t = document.getElementById('toast');
+    document.getElementById('t-msg').textContent = msg;
+    document.getElementById('t-ico').textContent = isErr ? '✕' : '✓';
+    t.classList.toggle('err', isErr);
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3600);
+  }
+
+  /* ── Init ──────────────────────────────────── */
+  updateProg(1);
+</script>
+</body>
+</html>
