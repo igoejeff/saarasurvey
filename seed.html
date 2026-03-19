@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Saara — Seed Demo Data</title>
+  <script src="js/airtable.js"></script>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #000; color: #f2f2f7; padding: 40px; }
+    h1 { font-size: 22px; margin-bottom: 20px; }
+    #log { background: #111; border-radius: 12px; padding: 20px; font-size: 13px; line-height: 2; color: #9b9ba8; white-space: pre-wrap; }
+    button { background: linear-gradient(135deg,#4f8ef7,#7c6af7); border: none; border-radius: 10px; color: #fff; font-size: 15px; font-weight: 700; padding: 14px 28px; cursor: pointer; margin-bottom: 24px; }
+    .ok  { color: #34d399; }
+    .err { color: #f87171; }
+  </style>
+</head>
+<body>
+<h1>Saara — Seed Demo Data into Airtable</h1>
+<button onclick="seedAll()">🚀 Insert 5 Sample Responses</button>
+<div id="log">Click the button above to populate Airtable with demo data…</div>
+
+<script>
+const SAMPLES = [
+  {
+    doctor_name: 'Dr. Rachel Kim',
+    clinic_name: 'Cascade Family Medicine',
+    specialty: 'Family Medicine',
+    practice_size: '3–5 physicians',
+    email: 'rkim@cascadefamily.com',
+    years_in_practice: '11–20 years',
+    pain_billing: 5, pain_compliance: 4, pain_scheduling: 3,
+    pain_clinical_notes: 4, pain_staff: 3, pain_patient_comms: 2,
+    top_pain_point: '💸 Billing & Revenue Cycle — Claims, denials, collections',
+    billing_detail: 'Claim denials, Prior authorization delays',
+    documentation_hours: '3–4 hours/day',
+    prior_auth_weekly: '20–40 per week',
+    annual_revenue_est: '$1M–$3M',
+    monthly_revenue_lost: '$10,000–$25,000/month',
+    current_billing_vendor: 'In-house billing team',
+    current_tools: 'Epic, Patient portal',
+    ai_openness: 'Very open — I actively follow AI in healthcare',
+    shopping_timeline: 'Within 6 months',
+    budget_authority: 'Yes — I make the final call',
+    demo_interest: 'Schedule me ASAP — I want a private demo',
+    confidence_factors: 'HIPAA compliance proof, ROI case study, EHR integration',
+    referral_source: 'Medical conference',
+    would_refer: 'Absolutely — my colleagues need this',
+    commitment_tier: '⭐ Founding Partner — I want to help shape this product',
+    soft_commitment: true,
+    additional_comments: 'We lose nearly $18K/month to denials alone. If Saara can cut that in half I\'m in immediately.',
+    submitted_at: Date.now() - 1000 * 60 * 60 * 24 * 2,
+    is_starred: true,
+    admin_note: 'High-value lead — $18K/month pain point, solo decision maker, wants demo ASAP.'
+  },
+  {
+    doctor_name: 'Dr. Marcus Webb',
+    clinic_name: 'Northside Orthopedic Group',
+    specialty: 'Orthopedic Surgery',
+    practice_size: '6–10 physicians',
+    email: 'mwebb@northsideortho.com',
+    years_in_practice: '21+ years',
+    pain_billing: 4, pain_compliance: 5, pain_scheduling: 4,
+    pain_clinical_notes: 3, pain_staff: 4, pain_patient_comms: 3,
+    top_pain_point: '📋 Regulatory Compliance — HIPAA, audits, documentation burden',
+    billing_detail: 'Prior authorization delays, Underpayments',
+    documentation_hours: '2–3 hours/day',
+    prior_auth_weekly: '40+ per week',
+    annual_revenue_est: '$3M–$10M',
+    monthly_revenue_lost: '$25,000–$50,000/month',
+    current_billing_vendor: 'Outsourced billing company',
+    current_tools: 'Athenahealth, Practice management software',
+    ai_openness: 'Somewhat open — I\'d consider it with the right evidence',
+    shopping_timeline: 'Within 3 months',
+    budget_authority: 'Yes — I make the final call',
+    demo_interest: 'Schedule me ASAP — I want a private demo',
+    confidence_factors: 'HIPAA compliance proof, Peer recommendations, ROI case study',
+    referral_source: 'Colleague recommendation',
+    would_refer: 'Yes, definitely',
+    commitment_tier: '⭐ Founding Partner — I want to help shape this product',
+    soft_commitment: true,
+    additional_comments: 'Prior auth is killing us — 3 full-time staff just handling that. Need a real solution.',
+    submitted_at: Date.now() - 1000 * 60 * 60 * 24 * 4,
+    is_starred: true,
+    admin_note: 'Orthopedic group — 40+ prior auths/week, $25-50K/month lost. Strong founding partner candidate.'
+  },
+  {
+    doctor_name: 'Dr. Priya Nair',
+    clinic_name: 'Sunridge Internal Medicine',
+    specialty: 'Internal Medicine',
+    practice_size: '1–2 physicians',
+    email: 'pnair@sunridgemd.com',
+    years_in_practice: '6–10 years',
+    pain_billing: 4, pain_compliance: 3, pain_scheduling: 5,
+    pain_clinical_notes: 5, pain_staff: 4, pain_patient_comms: 3,
+    top_pain_point: '📝 Clinical Documentation — Notes, coding, chart completion',
+    billing_detail: 'Time spent on paperwork',
+    documentation_hours: '4+ hours/day',
+    prior_auth_weekly: '10–20 per week',
+    annual_revenue_est: 'Under $500K',
+    monthly_revenue_lost: '$5,000–$10,000/month',
+    current_billing_vendor: 'I handle billing myself',
+    current_tools: 'DrChrono, Telemedicine platform',
+    ai_openness: 'Very open — I actively follow AI in healthcare',
+    shopping_timeline: 'Immediately — I\'m actively looking now',
+    budget_authority: 'Yes — I make the final call',
+    demo_interest: 'Schedule me ASAP — I want a private demo',
+    confidence_factors: 'Time savings proof, EHR integration, Free trial',
+    referral_source: 'Online search',
+    would_refer: 'Absolutely — my colleagues need this',
+    commitment_tier: '🚀 Early Access — I want in before the public launch',
+    soft_commitment: true,
+    additional_comments: 'I spend more time on documentation than with patients. Something has to change.',
+    submitted_at: Date.now() - 1000 * 60 * 60 * 24 * 1,
+    is_starred: true,
+    admin_note: 'Solo practice — 4+ hrs/day on documentation. Urgent need, immediate timeline.'
+  },
+  {
+    doctor_name: 'Dr. James Okafor',
+    clinic_name: 'Metro Cardiology Associates',
+    specialty: 'Cardiology',
+    practice_size: '6–10 physicians',
+    email: 'jokafor@metrocardio.com',
+    years_in_practice: '11–20 years',
+    pain_billing: 5, pain_compliance: 4, pain_scheduling: 3,
+    pain_clinical_notes: 4, pain_staff: 5, pain_patient_comms: 4,
+    top_pain_point: '💸 Billing & Revenue Cycle — Claims, denials, collections',
+    billing_detail: 'Claim denials, Underpayments, Staff overhead',
+    documentation_hours: '3–4 hours/day',
+    prior_auth_weekly: '20–40 per week',
+    annual_revenue_est: '$3M–$10M',
+    monthly_revenue_lost: '$25,000–$50,000/month',
+    current_billing_vendor: 'Outsourced billing company',
+    current_tools: 'Epic, Cardiology-specific software',
+    ai_openness: 'Somewhat open — I\'d consider it with the right evidence',
+    shopping_timeline: 'Within 6 months',
+    budget_authority: 'Shared decision — I influence but need partner buy-in',
+    demo_interest: 'Send me information first, then let\'s talk',
+    confidence_factors: 'ROI case study, HIPAA compliance proof, Peer recommendations',
+    referral_source: 'Medical conference',
+    would_refer: 'Yes, definitely',
+    commitment_tier: '🚀 Early Access — I want in before the public launch',
+    soft_commitment: false,
+    additional_comments: 'Staff burnout is our biggest hidden cost. We\'ve lost 4 billing staff in 18 months.',
+    submitted_at: Date.now() - 1000 * 60 * 60 * 24 * 6,
+    is_starred: true,
+    admin_note: 'Cardiology group — staff burnout & high turnover. Early access interest, needs partner buy-in.'
+  },
+  {
+    doctor_name: 'Dr. Sandra Flores',
+    clinic_name: 'Westlake Pediatric Care',
+    specialty: 'Pediatrics',
+    practice_size: '3–5 physicians',
+    email: 'sflores@westlakepeds.com',
+    years_in_practice: '6–10 years',
+    pain_billing: 3, pain_compliance: 3, pain_scheduling: 4,
+    pain_clinical_notes: 4, pain_staff: 3, pain_patient_comms: 5,
+    top_pain_point: '📞 Patient Communications — Reminders, follow-ups, portal',
+    billing_detail: 'Time spent on paperwork',
+    documentation_hours: '2–3 hours/day',
+    prior_auth_weekly: '5–10 per week',
+    annual_revenue_est: '$500K–$1M',
+    monthly_revenue_lost: '$2,500–$5,000/month',
+    current_billing_vendor: 'In-house billing team',
+    current_tools: 'eClinicalWorks, Patient portal',
+    ai_openness: 'Curious but cautious — I have questions',
+    shopping_timeline: 'Within 12 months',
+    budget_authority: 'Yes — I make the final call',
+    demo_interest: 'Keep me in the loop — not ready yet but interested',
+    confidence_factors: 'Free trial, Peer recommendations, Time savings proof',
+    referral_source: 'Social media',
+    would_refer: 'Maybe — depends on results',
+    commitment_tier: '📬 Stay Informed — Keep me updated as you grow',
+    soft_commitment: false,
+    additional_comments: 'Patient no-shows and communication gaps are costing us. Would love to see what AI can do here.',
+    submitted_at: Date.now() - 1000 * 60 * 60 * 24 * 3,
+    is_starred: false,
+    admin_note: ''
+  }
+];
+
+async function seedAll() {
+  const log = document.getElementById('log');
+  log.innerHTML = 'Starting seed process…\n\n';
+
+  for (let i = 0; i < SAMPLES.length; i++) {
+    const s = SAMPLES[i];
+    try {
+      await atCreate(s);
+      log.innerHTML += `<span class="ok">✓ [${i+1}/5] Created: ${s.doctor_name} — ${s.clinic_name}</span>\n`;
+    } catch(e) {
+      log.innerHTML += `<span class="err">✕ [${i+1}/5] Failed: ${s.doctor_name} — ${e.message}</span>\n`;
+    }
+    // Small delay to respect Airtable rate limits
+    await new Promise(r => setTimeout(r, 250));
+  }
+
+  log.innerHTML += '\n<span class="ok">🎉 Done! Check your Airtable base and live dashboards.</span>';
+}
+</script>
+</body>
+</html>

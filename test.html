@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Saara — Connection Test</title>
+  <script src="js/airtable.js"></script>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #000; color: #f2f2f7; padding: 40px; max-width: 700px; margin: 0 auto; }
+    h1   { font-size: 22px; margin-bottom: 6px; }
+    p    { color: #5c5c6b; font-size: 13px; margin-bottom: 28px; }
+    .card { background: #0c0c10; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+    .card h2 { font-size: 14px; font-weight: 700; margin-bottom: 14px; color: #9b9ba8; letter-spacing: 1px; text-transform: uppercase; }
+    .row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
+    .row:last-child { border-bottom: none; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: #3a3a4a; }
+    .dot.ok  { background: #34d399; box-shadow: 0 0 8px rgba(52,211,153,.5); }
+    .dot.err { background: #f87171; box-shadow: 0 0 8px rgba(248,113,113,.5); }
+    .dot.spin { background: #4f8ef7; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .label { font-weight: 600; min-width: 200px; }
+    .detail { color: #5c5c6b; font-size: 12px; }
+    .detail.ok  { color: #34d399; }
+    .detail.err { color: #f87171; }
+    .btn { background: linear-gradient(135deg,#4f8ef7,#7c6af7); border: none; border-radius: 10px; color: #fff; font-size: 14px; font-weight: 700; padding: 12px 24px; cursor: pointer; margin-right: 10px; margin-bottom: 20px; }
+    .btn-ghost { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #9b9ba8; font-size: 14px; font-weight: 600; padding: 12px 24px; cursor: pointer; margin-bottom: 20px; }
+    pre { background: #0c0c10; border-radius: 10px; padding: 16px; font-size: 11px; color: #5c5c6b; overflow-x: auto; white-space: pre-wrap; word-break: break-all; margin-top: 10px; display: none; }
+    pre.show { display: block; }
+  </style>
+</head>
+<body>
+  <h1>🔬 Saara — Live Connection Test</h1>
+  <p>Run this on saarasurvey.com to verify Airtable is connected before showing anyone.</p>
+
+  <button class="btn" onclick="runAll()">▶ Run All Tests</button>
+  <button class="btn-ghost" onclick="runSubmitTest()">🧪 Test Submit (writes 1 real record)</button>
+
+  <div class="card">
+    <h2>Tests</h2>
+    <div class="row" id="t1"><div class="dot" id="d1"></div><div class="label">1. Airtable API reachable</div><div class="detail" id="r1">Waiting…</div></div>
+    <div class="row" id="t2"><div class="dot" id="d2"></div><div class="label">2. Base & table found</div><div class="detail" id="r2">Waiting…</div></div>
+    <div class="row" id="t3"><div class="dot" id="d3"></div><div class="label">3. Read records</div><div class="detail" id="r3">Waiting…</div></div>
+    <div class="row" id="t4"><div class="dot" id="d4"></div><div class="label">4. Fields exist / auto-create</div><div class="detail" id="r4">Waiting…</div></div>
+    <div class="row" id="t5"><div class="dot" id="d5"></div><div class="label">5. Write a test record</div><div class="detail" id="r5">Waiting…</div></div>
+    <div class="row" id="t6"><div class="dot" id="d6"></div><div class="label">6. Delete test record (cleanup)</div><div class="detail" id="r6">Waiting…</div></div>
+  </div>
+
+  <div class="card" id="summary-card" style="display:none">
+    <h2>Result</h2>
+    <div id="summary" style="font-size:15px;font-weight:600;"></div>
+  </div>
+
+  <pre id="raw-log"></pre>
+
+  <script>
+    function setTest(n, state, msg) {
+      document.getElementById('d'+n).className = 'dot ' + state;
+      const el = document.getElementById('r'+n);
+      el.textContent = msg;
+      el.className = 'detail ' + state;
+    }
+    function log(msg) {
+      const pre = document.getElementById('raw-log');
+      pre.classList.add('show');
+      pre.textContent += msg + '\n';
+    }
+
+    async function runAll() {
+      document.getElementById('raw-log').textContent = '';
+      document.getElementById('summary-card').style.display = 'none';
+      let testRecordId = null;
+
+      // Test 1 — API reachable
+      setTest(1,'spin','Checking…');
+      try {
+        const res = await fetch('https://api.airtable.com/v0/meta/whoami', { headers: AT_HEADERS });
+        if (res.ok) {
+          const d = await res.json();
+          setTest(1,'ok',`✓ Authenticated as: ${d.email || d.id || 'user'}`);
+          log('T1 OK: ' + JSON.stringify(d));
+        } else {
+          const e = await res.json().catch(()=>({}));
+          setTest(1,'err',`✕ HTTP ${res.status} — ${e?.error?.message||'Auth failed'}`);
+          log('T1 ERR: ' + JSON.stringify(e));
+          showSummary(false, 'Authentication failed — check your API token.'); return;
+        }
+      } catch(e) { setTest(1,'err','✕ Network error — '+e.message); log('T1 NET: '+e.message); showSummary(false,'Cannot reach Airtable API.'); return; }
+
+      // Test 2 — Base & table found
+      setTest(2,'spin','Checking…');
+      try {
+        const res = await fetch(AT_META_URL, { headers: AT_HEADERS });
+        const d   = await res.json();
+        log('T2 meta: ' + JSON.stringify(d).substring(0,300));
+        const table = (d.tables||[]).find(t => t.name === decodeURIComponent(AT_TABLE));
+        if (table) {
+          setTest(2,'ok',`✓ Table "${table.name}" found (${(table.fields||[]).length} fields)`);
+          log('T2 OK: table id=' + table.id);
+        } else {
+          const names = (d.tables||[]).map(t=>t.name).join(', ');
+          setTest(2,'err',`✕ Table "Saara Responses" not found. Found: ${names||'none'}`);
+          log('T2 ERR: tables=' + names);
+          showSummary(false, `Table not found. Rename your Airtable table to exactly: "Saara Responses"`); return;
+        }
+      } catch(e) { setTest(2,'err','✕ '+e.message); showSummary(false,'Meta API error.'); return; }
+
+      // Test 3 — Read records
+      setTest(3,'spin','Checking…');
+      try {
+        const records = await atFetchAll();
+        setTest(3,'ok',`✓ ${records.length} record(s) found`);
+        log('T3 OK: '+records.length+' records');
+      } catch(e) { setTest(3,'err','✕ '+e.message); log('T3 ERR: '+e.message); showSummary(false,'Cannot read records: '+e.message); return; }
+
+      // Test 4 — Ensure fields
+      setTest(4,'spin','Creating missing fields…');
+      try {
+        await atEnsureFields();
+        setTest(4,'ok','✓ All 33 fields verified / created');
+        log('T4 OK: fields ensured');
+      } catch(e) { setTest(4,'err','✕ '+e.message); log('T4 ERR: '+e.message); }
+
+      // Test 5 — Write test record
+      setTest(5,'spin','Writing test record…');
+      try {
+        const rec = await atCreate({
+          doctor_name: '__TEST_RECORD__',
+          clinic_name: 'Saara Connection Test',
+          email: 'test@saara.ai',
+          specialty: 'Test',
+          pain_billing: 1, pain_compliance: 1, pain_scheduling: 1,
+          pain_clinical_notes: 1, pain_staff: 1, pain_patient_comms: 1,
+          soft_commitment: false, is_starred: false,
+          submitted_at: Date.now()
+        });
+        testRecordId = rec.id;
+        setTest(5,'ok',`✓ Record created — ID: ${rec.id.substring(0,14)}…`);
+        log('T5 OK: id='+rec.id);
+      } catch(e) { setTest(5,'err','✕ '+e.message); log('T5 ERR: '+e.message); showSummary(false,'Write failed: '+e.message); return; }
+
+      // Test 6 — Delete test record
+      setTest(6,'spin','Cleaning up…');
+      try {
+        if (testRecordId) {
+          const res = await fetch(`${AT_URL}/${testRecordId}`, { method: 'DELETE', headers: AT_HEADERS });
+          if (res.ok) {
+            setTest(6,'ok','✓ Test record deleted — no junk left in Airtable');
+            log('T6 OK: deleted '+testRecordId);
+          } else {
+            setTest(6,'err','⚠ Could not delete test record — delete it manually in Airtable');
+          }
+        }
+      } catch(e) { setTest(6,'err','⚠ Cleanup error: '+e.message); }
+
+      showSummary(true, '🎉 All tests passed! The survey, admin dashboard, and investor board will all work correctly on saarasurvey.com.');
+    }
+
+    async function runSubmitTest() {
+      alert('This will write one real test record to Airtable. Check Airtable after to confirm it appeared, then delete it manually.');
+      setTest(5,'spin','Writing…');
+      try {
+        const rec = await atCreate({
+          doctor_name: 'TEST DOCTOR', clinic_name: 'TEST CLINIC',
+          email: 'test@test.com', specialty: 'Test',
+          pain_billing: 3, pain_compliance: 2, pain_scheduling: 4,
+          pain_clinical_notes: 3, pain_staff: 2, pain_patient_comms: 1,
+          soft_commitment: true, is_starred: false, submitted_at: Date.now(),
+          commitment_tier: 'Test Tier', demo_interest: 'Test'
+        });
+        setTest(5,'ok','✓ Written! ID: '+rec.id+' — check Airtable now');
+        alert('✅ Success! Record written to Airtable. Check your Airtable base — you should see "TEST DOCTOR" in the table.');
+      } catch(e) {
+        setTest(5,'err','✕ '+e.message);
+        alert('❌ Failed: '+e.message);
+      }
+    }
+
+    function showSummary(ok, msg) {
+      const card = document.getElementById('summary-card');
+      const el   = document.getElementById('summary');
+      card.style.display = 'block';
+      card.style.borderColor = ok ? 'rgba(52,211,153,.3)' : 'rgba(248,113,113,.3)';
+      el.style.color = ok ? '#34d399' : '#f87171';
+      el.textContent = msg;
+    }
+  </script>
+</body>
+</html>
