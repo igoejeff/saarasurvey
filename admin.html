@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="js/airtable.js"></script>
 
   <style>
     /* ── PASSWORD GATE ───────────────────────────── */
@@ -955,15 +956,8 @@
   async function loadData() {
     document.getElementById('table-body').innerHTML = `<div class="loading"><div class="spinner"></div> Loading responses…</div>`;
     try {
-      let page = 1, all = [];
-      while (true) {
-        const r = await fetch(`tables/saara_responses?page=${page}&limit=100`);
-        const d = await r.json();
-        all = all.concat(d.data || []);
-        if (all.length >= d.total || !d.data?.length) break;
-        page++;
-      }
-      allData = all.sort((a,b) => (b.submitted_at || b.created_at) - (a.submitted_at || a.created_at));
+      const all = await atFetchAll();
+      allData = all.sort((a,b) => (b.submitted_at || 0) - (a.submitted_at || 0));
       filteredData = [...allData];
       currentPage = 1;
       renderStats();
@@ -971,6 +965,7 @@
       renderTable();
       applyNewBadges();
     } catch (e) {
+      console.error(e);
       document.getElementById('table-body').innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">⚠️</div>
@@ -1400,11 +1395,7 @@
   // ── Star / Unstar ──────────────────────────────
   async function toggleStar(id, newVal, fromModal = false) {
     try {
-      await fetch(`tables/saara_responses/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_starred: newVal })
-      });
+      await atPatch(id, { is_starred: newVal });
       const r = allData.find(x => x.id === id);
       if (r) r.is_starred = newVal;
       showToast(newVal ? '⭐ Featured on investor board' : 'Removed from investor board');
@@ -1414,7 +1405,6 @@
           btn.textContent = newVal ? '☆ Remove' : '⭐ Feature This';
           btn.classList.toggle('unstar', newVal);
           btn.setAttribute('onclick', `toggleStar('${id}',${!newVal},true)`);
-          // Update the strong label above
           const strong = btn.closest('.modal-star-row')?.querySelector('strong');
           if (strong) strong.textContent = newVal ? '⭐ Currently featured on investor board' : 'Not yet featured';
         }
@@ -1429,11 +1419,7 @@
   async function saveAdminNote(id) {
     const note = document.getElementById('admin-note-input')?.value?.trim() ?? '';
     try {
-      await fetch(`tables/saara_responses/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ admin_note: note })
-      });
+      await atPatch(id, { admin_note: note });
       const r = allData.find(x => x.id === id);
       if (r) r.admin_note = note;
       showToast('💾 Note saved — visible on investor board');
