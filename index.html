@@ -565,7 +565,7 @@
     ═══════════════════════════════════════════ */
     .divider { border:none;border-top:1px solid var(--border);margin:20px 0; }
   </style>
-  <script src="js/airtable.js?v=4"></script>
+
 </head>
 <body>
 
@@ -1421,7 +1421,12 @@
     };
 
     try {
-      await atCreate(payload);
+      const res = await fetch('tables/saara_responses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('Server error');
       showSuccess(payload);
     } catch (err) {
       console.error(err);

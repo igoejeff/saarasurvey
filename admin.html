@@ -8,7 +8,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="js/airtable.js?v=4"></script>
 
   <style>
     /* ── PASSWORD GATE ───────────────────────────── */
@@ -561,89 +560,8 @@
     .main, .sidebar { position: relative; z-index: 1; }
   </style>
 </head>
-<body class="gate-locked">
+<body>
 
-<!-- ── PASSWORD GATE OVERLAY ─────────────────── -->
-<div id="gate-overlay">
-  <div class="gate-bg-orb gate-orb1"></div>
-  <div class="gate-bg-orb gate-orb2"></div>
-  <div class="gate-card">
-    <div class="gate-gem">S</div>
-    <div class="gate-title">Admin Dashboard</div>
-    <div class="gate-sub">Saara Practice Intelligence Survey<br>Enter your password to continue.</div>
-    <label class="gate-label">Password</label>
-    <form onsubmit="event.preventDefault();gateSubmit()">
-    <input type="text" name="username" value="saara-admin" autocomplete="username" style="display:none" aria-hidden="true" />
-    <div class="gate-input-wrap">
-      <input class="gate-input" id="gate-input" type="password"
-             placeholder="••••••••••••"
-             onkeydown="if(event.key==='Enter')gateSubmit()"
-             autocomplete="current-password" />
-      <button class="gate-eye" type="button" onclick="gateToggleEye()" id="gate-eye-btn" title="Show/hide">👁</button>
-    </div>
-    </form>
-    <div class="gate-error" id="gate-error"></div>
-    <button class="gate-btn" onclick="gateSubmit()">Unlock Dashboard →</button>
-    <div class="gate-footer">Session stays active for 24 hours.<br>Contact Saara team for access.</div>
-  </div>
-</div>
-
-<script>
-  (function() {
-    const GATE_KEY  = 'saara_admin_auth';
-    const GATE_PASS = 'saara2026!1';
-    const TTL_MS    = 24 * 60 * 60 * 1000; // 24 hours
-
-    function gateUnlock(animate) {
-      document.body.classList.remove('gate-locked');
-      const ov = document.getElementById('gate-overlay');
-      if (animate) {
-        ov.classList.add('unlocked');
-        setTimeout(() => ov.remove(), 600);
-      } else {
-        ov.remove();
-      }
-    }
-
-    // Check stored session
-    const stored = localStorage.getItem(GATE_KEY);
-    if (stored) {
-      try {
-        const { ts } = JSON.parse(stored);
-        if (Date.now() - ts < TTL_MS) { gateUnlock(false); }
-        else { localStorage.removeItem(GATE_KEY); }
-      } catch(e) { localStorage.removeItem(GATE_KEY); }
-    }
-
-    window.gateSubmit = function() {
-      const val = document.getElementById('gate-input').value;
-      if (val === GATE_PASS) {
-        localStorage.setItem(GATE_KEY, JSON.stringify({ ts: Date.now() }));
-        gateUnlock(true);
-      } else {
-        const inp = document.getElementById('gate-input');
-        const err = document.getElementById('gate-error');
-        err.textContent = 'Incorrect password. Please try again.';
-        inp.classList.add('shake');
-        inp.value = '';
-        setTimeout(() => inp.classList.remove('shake'), 500);
-      }
-    };
-
-    window.gateToggleEye = function() {
-      const inp = document.getElementById('gate-input');
-      const btn = document.getElementById('gate-eye-btn');
-      if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
-      else { inp.type = 'password'; btn.textContent = '👁'; }
-    };
-
-    // Auto-focus input after a tick
-    setTimeout(() => {
-      const inp = document.getElementById('gate-input');
-      if (inp) inp.focus();
-    }, 100);
-  })();
-</script>
 
 <div class="bg-fixed">
   <div class="orb o1"></div>
@@ -956,8 +874,15 @@
   async function loadData() {
     document.getElementById('table-body').innerHTML = `<div class="loading"><div class="spinner"></div> Loading responses…</div>`;
     try {
-      const all = await atFetchAll();
-      allData = all.sort((a,b) => (b.submitted_at || 0) - (a.submitted_at || 0));
+      let page = 1, all = [];
+      while (true) {
+        const r = await fetch(`tables/saara_responses?page=${page}&limit=100`);
+        const d = await r.json();
+        all = all.concat(d.data || []);
+        if (all.length >= d.total || !d.data?.length) break;
+        page++;
+      }
+      allData = all.sort((a,b) => (b.submitted_at || b.created_at) - (a.submitted_at || a.created_at));
       filteredData = [...allData];
       currentPage = 1;
       renderStats();
@@ -1395,7 +1320,11 @@
   // ── Star / Unstar ──────────────────────────────
   async function toggleStar(id, newVal, fromModal = false) {
     try {
-      await atPatch(id, { is_starred: newVal });
+      await fetch(`tables/saara_responses/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_starred: newVal })
+      });
       const r = allData.find(x => x.id === id);
       if (r) r.is_starred = newVal;
       showToast(newVal ? '⭐ Featured on investor board' : 'Removed from investor board');
@@ -1419,7 +1348,11 @@
   async function saveAdminNote(id) {
     const note = document.getElementById('admin-note-input')?.value?.trim() ?? '';
     try {
-      await atPatch(id, { admin_note: note });
+      await fetch(`tables/saara_responses/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_note: note })
+      });
       const r = allData.find(x => x.id === id);
       if (r) r.admin_note = note;
       showToast('💾 Note saved — visible on investor board');
