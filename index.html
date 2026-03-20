@@ -1420,13 +1420,25 @@
       submitted_at:         Date.now()
     };
 
+    const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzClIghBIrlwFrS24Od52RcbXfAojgC_jOFnCx6ZqO5DLTWB_NDKG1PlBzKT7_RIkojyA/exec';
+
     try {
-      const res = await fetch('tables/saara_responses', {
+      // Save to Google Sheets (live site backend)
+      const sheetsPromise = fetch(SHEETS_URL, {
         method: 'POST',
+        mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('Server error');
+
+      // Also save to Genspark DB (preview environment)
+      const gsPromise = fetch('tables/saara_responses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(() => null); // silent fail if not in preview
+
+      await Promise.all([sheetsPromise, gsPromise]);
       showSuccess(payload);
     } catch (err) {
       console.error(err);
