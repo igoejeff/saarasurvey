@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Saara — Connection Test</title>
-  <script src="js/airtable.js?v=2"></script>
+  <script src="js/airtable.js?v=3"></script>
   <style>
     body { font-family: -apple-system, sans-serif; background: #000; color: #f2f2f7; padding: 40px; max-width: 700px; margin: 0 auto; }
     h1   { font-size: 22px; margin-bottom: 6px; }
@@ -85,23 +85,20 @@
         }
       } catch(e) { setTest(1,'err','✕ Network error — '+e.message); log('T1 NET: '+e.message); showSummary(false,'Cannot reach Airtable API.'); return; }
 
-      // Test 2 — Base & table found
+      // Test 2 — Base & table found via direct read
       setTest(2,'spin','Checking…');
       try {
-        const res = await fetch(AT_META_URL, { headers: AT_HEADERS });
+        const url = AT_URL + '?pageSize=1';
+        const res = await fetch(url, { headers: AT_HEADERS });
         const d   = await res.json();
-        log('T2 meta: ' + JSON.stringify(d).substring(0,300));
-        const table = (d.tables||[]).find(t => t.name === decodeURIComponent(AT_TABLE));
-        if (table) {
-          setTest(2,'ok',`✓ Table "${table.name}" found (${(table.fields||[]).length} fields)`);
-          log('T2 OK: table id=' + table.id);
+        log('T2 direct: status=' + res.status + ' body=' + JSON.stringify(d).substring(0,200));
+        if (res.ok) {
+          setTest(2,'ok',`✓ Table reached — ${d.records?.length ?? 0} record(s) on first page`);
         } else {
-          const names = (d.tables||[]).map(t=>t.name).join(', ');
-          setTest(2,'err',`✕ Table "Saara Responses" not found. Found: ${names||'none'}`);
-          log('T2 ERR: tables=' + names);
-          showSummary(false, `Table not found. Rename your Airtable table to exactly: "Saara Responses"`); return;
+          setTest(2,'err',`✕ HTTP ${res.status} — ${d?.error?.message || JSON.stringify(d)}`);
+          showSummary(false, `Table error: ${d?.error?.message || res.status}`); return;
         }
-      } catch(e) { setTest(2,'err','✕ '+e.message); showSummary(false,'Meta API error.'); return; }
+      } catch(e) { setTest(2,'err','✕ '+e.message); showSummary(false,'Table error: '+e.message); return; }
 
       // Test 3 — Read records
       setTest(3,'spin','Checking…');
