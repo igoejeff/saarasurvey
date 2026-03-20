@@ -6,7 +6,8 @@ const _t = ['patmIwfdgi', 'qdblRZT.3e80ba0bed90d2bc2a55cb8e', 'aec276d49e62a997b
 const AT_TOKEN    = _t.join('');
 const AT_BASE     = 'appB8vcgsTlAkyhayltbloLPOhwEUDWTWbe';
 const AT_TABLE    = 'Saara Responses';
-const AT_URL      = `https://api.airtable.com/v0/${AT_BASE}/${encodeURIComponent(AT_TABLE)}`;
+const AT_TABLE_ID = 'tbloLPOhwEUDWTWbe';
+const AT_URL      = `https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE_ID}`;
 const AT_META_URL = `https://api.airtable.com/v0/meta/bases/${AT_BASE}/tables`;
 const AT_HEADERS  = { 'Authorization': `Bearer ${AT_TOKEN}`, 'Content-Type': 'application/json' };
 
