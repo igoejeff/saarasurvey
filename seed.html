@@ -39,10 +39,28 @@
 </head>
 <body>
 <h1>Saara — Seed Demo Data into Airtable</h1>
-<button onclick="seedAll()">🚀 Insert 5 Sample Responses</button>
-<div id="log">Click the button above to populate Airtable with demo data…</div>
+<button onclick="testConnection()">🔌 Step 1: Test Connection</button>
+<button onclick="seedAll()" style="background:linear-gradient(135deg,#34d399,#059669);margin-left:10px" id="seed-btn" disabled>🚀 Step 2: Insert Data</button>
+<div id="log">Click Step 1 first…</div>
 
 <script>
+async function testConnection() {
+  const log = document.getElementById('log');
+  log.innerHTML = 'Testing…\n\n';
+  try {
+    const res = await fetch(AT_URL + '?maxRecords=1', { headers: AT_HEADERS });
+    const data = await res.json();
+    log.innerHTML += 'HTTP ' + res.status + '\n';
+    log.innerHTML += JSON.stringify(data).substring(0,600) + '\n\n';
+    if (res.ok) {
+      log.innerHTML += '<span style="color:#34d399">✓ Connected! Click Step 2.</span>';
+      document.getElementById('seed-btn').disabled = false;
+    } else {
+      log.innerHTML += '<span style="color:#f87171">✕ ' + (data?.error?.message||JSON.stringify(data)) + '</span>';
+    }
+  } catch(e) { log.innerHTML += '<span style="color:#f87171">✕ ' + e.message + '</span>'; }
+}
+
 const SAMPLES = [
   {
     doctor_name: 'Dr. Rachel Kim',
@@ -203,25 +221,26 @@ const SAMPLES = [
 
 async function seedAll() {
   const log = document.getElementById('log');
-  log.innerHTML = 'Starting seed process…\n\n';
-
+  log.innerHTML = 'Inserting sample responses…\n\n';
   for (let i = 0; i < SAMPLES.length; i++) {
     const s = SAMPLES[i];
     try {
-      // Build fields — only send non-empty values with correct types
       const fields = {};
-      Object.entries(s).forEach(([k, v]) => {
-        if (v === null || v === undefined) return;
-        fields[k] = v;
+      Object.entries(s).forEach(([k, v]) => { if (v !== null && v !== undefined) fields[k] = v; });
+      const res = await fetch(AT_URL, {
+        method: 'POST', headers: AT_HEADERS,
+        body: JSON.stringify({ fields })
       });
-      await createRecord(fields);
-      log.innerHTML += `<span class="ok">✓ [${i+1}/5] Created: ${s.doctor_name} — ${s.clinic_name}</span>\n`;
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error?.message || JSON.stringify(data));
+      log.innerHTML += `<span style="color:#34d399">✓ [${i+1}/5] ${s.doctor_name}</span>\n`;
     } catch(e) {
-      log.innerHTML += `<span class="err">✕ [${i+1}/5] Failed: ${s.doctor_name} — ${e.message}</span>\n`;
+      log.innerHTML += `<span style="color:#f87171">✕ [${i+1}/5] ${s.doctor_name} — ${e.message}</span>\n`;
     }
     await new Promise(r => setTimeout(r, 300));
   }
-
+  log.innerHTML += '\n<span style="color:#34d399">🎉 Done! Check Airtable and your dashboards.</span>';
+}
   log.innerHTML += '\n<span class="ok">🎉 Done! Check your Airtable base and live dashboards.</span>';
 }
 }
