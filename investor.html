@@ -577,15 +577,54 @@
   const PALETTE = ['#4f8ef7','#7c6af7','#34d399','#fbbf24','#f87171','#a78bfa','#38bdf8','#fb7185','#4ade80','#facc15'];
 
   // ── Load ──────────────────────────────────────
+  const SHEETS_READ_URL = 'https://script.google.com/macros/s/AKfycbzClIghBIrlwFrS24Od52RcbXfAojgC_jOFnCx6ZqO5DLTWB_NDKG1PlBzKT7_RIkojyA/exec';
+
+  function mapSheetRow(r) {
+    return {
+      doctor_name:          r['Doctor Name']          || r['doctor_name']          || '',
+      clinic_name:          r['Clinic']               || r['clinic_name']          || '',
+      specialty:            r['Specialty']            || r['specialty']            || '',
+      practice_size:        r['Practice Size']        || r['practice_size']        || '',
+      email:                r['Email']                || r['email']                || '',
+      pain_billing:         Number(r['Pain: Billing']       || r['pain_billing'])        || 0,
+      pain_compliance:      Number(r['Pain: Compliance']    || r['pain_compliance'])     || 0,
+      pain_scheduling:      Number(r['Pain: Scheduling']    || r['pain_scheduling'])     || 0,
+      pain_clinical_notes:  Number(r['Pain: Documentation'] || r['pain_clinical_notes']) || 0,
+      pain_staff:           Number(r['Pain: Staff']         || r['pain_staff'])          || 0,
+      pain_patient_comms:   Number(r['Pain: Patient Comms'] || r['pain_patient_comms'])  || 0,
+      top_pain_point:       r['Top Pain Point']       || r['top_pain_point']       || '',
+      billing_detail:       r['Billing Detail']       || r['billing_detail']       || '',
+      annual_revenue_est:   r['Annual Revenue']       || r['annual_revenue_est']   || '',
+      monthly_revenue_lost: r['Monthly Revenue Lost'] || r['monthly_revenue_lost'] || '',
+      ai_openness:          r['AI Openness']          || r['ai_openness']          || '',
+      shopping_timeline:    r['Shopping Timeline']    || r['shopping_timeline']    || '',
+      demo_interest:        r['Demo Interest']        || r['demo_interest']        || '',
+      commitment_tier:      r['Commitment Tier']      || r['commitment_tier']      || '',
+      soft_commitment:      r['Soft Commitment'] === true || r['Soft Commitment'] === 'true' || r['Soft Commitment'] === 'TRUE' || r['soft_commitment'] === true,
+      additional_comments:  r['Comments']             || r['additional_comments']  || '',
+      submitted_at:         r['Timestamp']            || r['submitted_at']         || '',
+      is_starred:           false,
+      admin_note:           ''
+    };
+  }
+
   async function loadData() {
     try {
-      let page = 1, all = [];
-      while (true) {
-        const r = await fetch(`tables/saara_responses?page=${page}&limit=100`);
+      const isLive = location.hostname === 'saarasurvey.com' || location.hostname === 'www.saarasurvey.com';
+      let all = [];
+      if (isLive) {
+        const r = await fetch(SHEETS_READ_URL);
         const d = await r.json();
-        all = all.concat(d.data || []);
-        if (all.length >= d.total || !d.data?.length) break;
-        page++;
+        all = (d.rows || []).map(mapSheetRow);
+      } else {
+        let page = 1;
+        while (true) {
+          const r = await fetch(`tables/saara_responses?page=${page}&limit=100`);
+          const d = await r.json();
+          all = all.concat(d.data || []);
+          if (all.length >= d.total || !d.data?.length) break;
+          page++;
+        }
       }
       allData = all.sort((a,b) => (b.submitted_at||b.created_at) - (a.submitted_at||a.created_at));
       document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
