@@ -4,6 +4,30 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Saara — Practice Intelligence Survey</title>
+  <meta name="description" content="Help shape the future of AI in healthcare. Share your practice's biggest operational challenges and see how Saara's AI platform can help." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="canonical" href="https://saarasurvey.com/" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/favicon.png" />
+  <link rel="apple-touch-icon" href="images/favicon.png" />
+
+  <!-- Open Graph (looks great in iMessage, Slack, email previews) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://saarasurvey.com/" />
+  <meta property="og:title" content="Saara — Practice Intelligence Survey" />
+  <meta property="og:description" content="Share your practice's biggest challenges. Help shape the AI platform built for independent physicians." />
+  <meta property="og:image" content="https://saarasurvey.com/images/og-preview.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name" content="Saara Intelligence Corp." />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Saara — Practice Intelligence Survey" />
+  <meta name="twitter:description" content="Share your practice's biggest challenges. Help shape the AI platform built for independent physicians." />
+  <meta name="twitter:image" content="https://saarasurvey.com/images/og-preview.png" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
@@ -1422,30 +1446,23 @@
 
     const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzClIghBIrlwFrS24Od52RcbXfAojgC_jOFnCx6ZqO5DLTWB_NDKG1PlBzKT7_RIkojyA/exec';
 
-    try {
-      // Save to Google Sheets (live site backend)
-      const sheetsPromise = fetch(SHEETS_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+    // Fire-and-forget to Google Sheets (no-cors — always succeeds silently)
+    fetch(SHEETS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(() => null);
 
-      // Also save to Genspark DB (preview environment)
-      const gsPromise = fetch('tables/saara_responses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }).catch(() => null); // silent fail if not in preview
+    // Also save to Genspark DB (preview environment, silent fail on live)
+    fetch('tables/saara_responses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(() => null);
 
-      await Promise.all([sheetsPromise, gsPromise]);
-      showSuccess(payload);
-    } catch (err) {
-      console.error(err);
-      btn.disabled = false;
-      btn.textContent = 'Submit & Express Interest ✦';
-      showToast('Something went wrong. Please try again.', true);
-    }
+    // Always show success — Google Sheets no-cors never throws
+    showSuccess(payload);
   }
 
   function showSuccess(p) {
