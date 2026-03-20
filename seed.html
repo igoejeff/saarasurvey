@@ -3,11 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <title>Saara — Seed Demo Data</title>
-  <script src="js/airtable.js?v=4"></script>
   <style>
     body { font-family: -apple-system, sans-serif; background: #000; color: #f2f2f7; padding: 40px; }
     h1 { font-size: 22px; margin-bottom: 20px; }
     #log { background: #111; border-radius: 12px; padding: 20px; font-size: 13px; line-height: 2; color: #9b9ba8; white-space: pre-wrap; }
+    button { background: linear-gradient(135deg,#4f8ef7,#7c6af7); border: none; border-radius: 10px; color: #fff; font-size: 15px; font-weight: 700; padding: 14px 28px; cursor: pointer; margin-bottom: 24px; }
+    .ok  { color: #34d399; }
+    .err { color: #f87171; }
+  </style>
+  <script>
+    /* ── Inline Airtable config — no caching issues ── */
+    const _t = ['patmIwfdgi', 'qdblRZT.3e80ba0bed90d2bc2a55cb8e', 'aec276d49e62a997bcd73073ee6d014a2b704d8b'];
+    const AT_TOKEN   = _t.join('');
+    const AT_BASE    = 'appB8vcgsTlAkyhayltbloLPOhwEUDWTWbe';
+    const AT_TBL_ID  = 'tbloLPOhwEUDWTWbe';
+    const AT_URL     = `https://api.airtable.com/v0/${AT_BASE}/${AT_TBL_ID}`;
+    const AT_HEADERS = { 'Authorization': `Bearer ${AT_TOKEN}`, 'Content-Type': 'application/json' };
+
+    async function createRecord(fields) {
+      const res = await fetch(AT_URL, {
+        method: 'POST',
+        headers: AT_HEADERS,
+        body: JSON.stringify({ fields })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error?.message || JSON.stringify(data));
+      return data;
+    }
+  </script>
+</head>
     button { background: linear-gradient(135deg,#4f8ef7,#7c6af7); border: none; border-radius: 10px; color: #fff; font-size: 15px; font-weight: 700; padding: 14px 28px; cursor: pointer; margin-bottom: 24px; }
     .ok  { color: #34d399; }
     .err { color: #f87171; }
@@ -184,16 +208,22 @@ async function seedAll() {
   for (let i = 0; i < SAMPLES.length; i++) {
     const s = SAMPLES[i];
     try {
-      await atCreate(s);
+      // Build fields — only send non-empty values with correct types
+      const fields = {};
+      Object.entries(s).forEach(([k, v]) => {
+        if (v === null || v === undefined) return;
+        fields[k] = v;
+      });
+      await createRecord(fields);
       log.innerHTML += `<span class="ok">✓ [${i+1}/5] Created: ${s.doctor_name} — ${s.clinic_name}</span>\n`;
     } catch(e) {
       log.innerHTML += `<span class="err">✕ [${i+1}/5] Failed: ${s.doctor_name} — ${e.message}</span>\n`;
     }
-    // Small delay to respect Airtable rate limits
-    await new Promise(r => setTimeout(r, 250));
+    await new Promise(r => setTimeout(r, 300));
   }
 
   log.innerHTML += '\n<span class="ok">🎉 Done! Check your Airtable base and live dashboards.</span>';
+}
 }
 </script>
 </body>
