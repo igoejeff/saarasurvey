@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sheets Connection Test</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #0a0a0a; color: #fff; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+    .card { background: #1a1a1a; border: 1px solid #333; border-radius: 16px; padding: 40px; max-width: 500px; width: 100%; text-align: center; }
+    h2 { margin: 0 0 8px; font-size: 20px; }
+    p { color: #888; font-size: 14px; margin: 0 0 32px; }
+    button { background: #7c6af7; color: #fff; border: none; border-radius: 10px; padding: 14px 32px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #result { margin-top: 24px; padding: 16px; border-radius: 10px; font-size: 14px; display: none; text-align: left; line-height: 1.6; }
+    .success { background: #0d2b1a; border: 1px solid #1a5c35; color: #4ade80; }
+    .error   { background: #2b0d0d; border: 1px solid #5c1a1a; color: #f87171; }
+    .info    { background: #0d1a2b; border: 1px solid #1a3a5c; color: #60a5fa; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h2>Google Sheets Connection Test</h2>
+  <p>Sends a real test record to your Google Sheet right now</p>
+  <button id="btn" onclick="runTest()">▶ Send Test Record to Google Sheets</button>
+  <div id="result"></div>
+</div>
+
+<script>
+  const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzClIghBIrlwFrS24Od52RcbXfAojgC_jOFnCx6ZqO5DLTWB_NDKG1PlBzKT7_RIkojyA/exec';
+
+  async function runTest() {
+    const btn = document.getElementById('btn');
+    const result = document.getElementById('result');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+
+    result.style.display = 'block';
+    result.className = 'info';
+    result.innerHTML = '⏳ Firing request to Google Sheets…';
+
+    const testPayload = {
+      doctor_name: 'TEST RECORD — Delete Me',
+      clinic_name: 'Saara Test Suite',
+      specialty: 'Testing',
+      practice_size: '1-2 physicians',
+      email: 'test@saarasurvey.com',
+      years_in_practice: '1',
+      pain_billing: 5,
+      pain_compliance: 4,
+      pain_scheduling: 3,
+      pain_clinical_notes: 5,
+      pain_staff: 4,
+      pain_patient_comms: 3,
+      top_pain_point: 'Billing & Revenue Cycle',
+      commitment_tier: 'Early Access',
+      soft_commitment: true,
+      demo_interest: 'Yes — schedule me ASAP',
+      additional_comments: 'This is an automated test. Please delete this row.',
+      submitted_at: new Date().toISOString()
+    };
+
+    try {
+      await fetch(SHEETS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(testPayload)
+      });
+
+      result.className = 'success';
+      result.innerHTML = `
+        ✅ <strong>Request fired successfully!</strong><br><br>
+        Now check your Google Sheet — you should see a row with:<br>
+        <strong>"TEST RECORD — Delete Me"</strong><br><br>
+        If the row is there → everything works ✓<br>
+        If not → the Apps Script needs a fix
+      `;
+      btn.textContent = '✓ Sent — Check Your Google Sheet';
+    } catch(err) {
+      result.className = 'error';
+      result.innerHTML = `❌ <strong>Failed:</strong> ${err.message}<br><br>This means the URL is wrong or the script is not deployed.`;
+      btn.disabled = false;
+      btn.textContent = '▶ Try Again';
+    }
+  }
+</script>
+</body>
+</html>
