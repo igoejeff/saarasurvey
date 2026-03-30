@@ -245,7 +245,20 @@
     .main { margin-left: 240px; padding: 32px 32px 80px; min-height: 100vh; }
     @media(max-width:768px){
       .sidebar { display: none; }
-      .main { margin-left: 0; padding: 20px; }
+      .main { margin-left: 0; padding: 16px; }
+      .topbar { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+      .topbar-left h1 { font-size: 20px; }
+      .topbar-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+      .stat-grid { grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 16px; }
+      .charts-grid { grid-template-columns: 1fr !important; }
+      .chart-card.wide { grid-column: span 1 !important; }
+      .filters-bar { flex-direction: column; gap: 8px; }
+      .filters-bar input, .filters-bar select { width: 100%; }
+      .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    }
+    @media(max-width:400px){
+      .stat-grid { grid-template-columns: 1fr; }
+      .main { padding: 12px; }
     }
 
     /* ── TOPBAR ──────────────────────────────── */

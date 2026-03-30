@@ -50,9 +50,9 @@
       --success:        #34d399;
       --warning:        #fbbf24;
       --danger:         #f87171;
-      --text-1:         #f2f2f7;
-      --text-2:         #9b9ba8;
-      --text-3:         #5c5c6b;
+      --text-1:         #ffffff;
+      --text-2:         #d1d1db;
+      --text-3:         #9b9ba8;
       --r-sm: 10px; --r-md: 16px; --r-lg: 22px; --r-xl: 32px;
       --ease: cubic-bezier(0.4,0,0.2,1);
       --shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 20px 60px rgba(0,0,0,0.55);
@@ -197,7 +197,7 @@
     .section-hd { margin-bottom:36px; }
     .section-kicker { font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:10px; }
     .section-title { font-size:28px;font-weight:800;letter-spacing:-.7px;line-height:1.2;margin-bottom:10px; }
-    .section-body { font-size:15px;color:var(--text-2);line-height:1.65; }
+    .section-body { font-size:15px;color:var(--text-1);line-height:1.65; }
     @media(max-width:600px){
       .section-hd { margin-bottom: 24px; }
       .section-title { font-size: 22px; letter-spacing: -.4px; }
@@ -216,7 +216,7 @@
       .card { padding: 20px 16px; border-radius: var(--r-md); }
     }
     .card-title { font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:6px; }
-    .card-sub { font-size:13px;color:var(--text-3);margin-bottom:16px;line-height:1.5; }
+    .card-sub { font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.5; }
 
     /* ═══════════════════════════════════════════
        FORM INPUTS
@@ -228,7 +228,7 @@
 
     label.lbl {
       display:block;font-size:12px;font-weight:600;letter-spacing:.3px;
-      text-transform:uppercase;color:var(--text-3);margin-bottom:8px;
+      text-transform:uppercase;color:var(--text-2);margin-bottom:8px;
     }
     .req { color:var(--accent);margin-left:3px; }
 
@@ -284,7 +284,7 @@
 
     .ci-txt { flex:1; }
     .ci-lbl { font-size:14px;font-weight:500;color:var(--text-1);line-height:1.3;margin-bottom:2px; }
-    .ci-sub { font-size:12px;color:var(--text-3);line-height:1.4; }
+    .ci-sub { font-size:12px;color:var(--text-2);line-height:1.4; }
 
     .ci input:checked + .ci-face { background:var(--accent-soft);border-color:var(--accent); }
     .ci input:checked + .ci-face .ci-box { background:var(--accent);border-color:var(--accent); }
@@ -315,7 +315,7 @@
     .pain-row.rated { border-color:rgba(124,106,247,.28); }
     .pain-info { flex:1;min-width:0; }
     .pain-name { font-size:14px;font-weight:500;color:var(--text-1); }
-    .pain-desc { font-size:12px;color:var(--text-3);margin-top:2px; }
+    .pain-desc { font-size:12px;color:var(--text-2);margin-top:2px; }
     .pain-dots { display:flex;gap:7px;flex-shrink:0; }
     .pd {
       width:30px;height:30px;border-radius:50%;
@@ -335,7 +335,7 @@
     .pd[data-v="3"].on{background:#f59e0b;}
     .pd[data-v="4"].on{background:#f97316;}
     .pd[data-v="5"].on{background:#ef4444;box-shadow:0 0 10px rgba(239,68,68,.38);}
-    .pain-legend { display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);padding:0 4px;margin-top:6px; }
+    .pain-legend { display:flex;justify-content:space-between;font-size:11px;color:var(--text-2);padding:0 4px;margin-top:6px; }
 
     /* ═══════════════════════════════════════════
        RANGE SLIDER
@@ -674,6 +674,7 @@
             <option>Ophthalmology</option>
             <option>Neurology</option>
             <option>Oncology</option>
+            <option>Podiatry</option>
             <option>Urgent Care</option>
             <option>Other Specialty</option>
           </select>
@@ -791,6 +792,17 @@
             <div class="pain-desc">Recall management, care gaps, reminders, patient satisfaction scores</div>
           </div>
           <div class="pain-dots" data-f="patient-comms">
+            <div class="pd" data-v="1">1</div><div class="pd" data-v="2">2</div>
+            <div class="pd" data-v="3">3</div><div class="pd" data-v="4">4</div><div class="pd" data-v="5">5</div>
+          </div>
+        </div>
+
+        <div class="pain-row" id="pr-retirement">
+          <div class="pain-info">
+            <div class="pain-name">🏦 Retirement Planning & Physician Exit Strategy</div>
+            <div class="pain-desc">Practice valuation, succession planning, buy-sell agreements, transition timelines</div>
+          </div>
+          <div class="pain-dots" data-f="retirement">
             <div class="pd" data-v="1">1</div><div class="pd" data-v="2">2</div>
             <div class="pd" data-v="3">3</div><div class="pd" data-v="4">4</div><div class="pd" data-v="5">5</div>
           </div>
